@@ -50,7 +50,7 @@ You can configure this tool by modifying `resourceLoader/config.toml`.
 
 | Tool | Version | Notes |
 |---|---|---|
-| Visual Studio 2022 (Community or higher), or Build Tools 2022 | 17.10+ | Workload **Desktop development with C++** (MSVC v143, Windows 11 SDK), plus the component **C++ Clang tools for Windows** (supplies `clang-format.exe` / `clang-tidy.exe`) |
+| Visual Studio 2022 (Community or higher), or Build Tools 2022 | 17.10+ | Workload **Desktop development with C++** (MSVC v143, Windows 11 SDK), plus the component **C++ Clang tools for Windows** (supplies `clang-format.exe`) |
 | Git | 2.30+ | Dependencies are submodules: clone with `--recurse-submodules` |
 
 Nothing else has to be installed: the ScriptHookV SDK is vendored in
@@ -110,7 +110,6 @@ The CRT is linked statically, so no VC++ redistributable is needed.
 | `tools\build.ps1 [-Configuration Debug\|Dev\|Release] [-Core] [-Rebuild] [-Stamp] [-Clean]` | builds; `-Stamp` writes a local `src\core\BuildVersion.h`; `-Clean` removes `dist/` and that header |
 | `tools\test.ps1 [-Configuration Debug]` | builds the Core filter and runs `spl_tests.exe` |
 | `tools\format.ps1 [-Check]` | runs the VS-bundled clang-format over `src/` and `tests/` |
-| `tools\tidy.ps1 [-Core] [-WithMsvcAnalysis]` | builds with clang-tidy code analysis enabled |
 | `tools\check-projects.ps1` | verifies every `.cpp` belongs to exactly one project |
 | `tools\package.ps1 [-SkipBuild] [-SkipTests] [-Version <v>]` | builds Release, runs the tests, writes the release zip, a symbols zip and SHA-256 files to `dist\package\` |
 
@@ -155,9 +154,9 @@ projects/    everything MSBuild needs, and nothing else
 ├── props/         shared property sheets (Common, Dependencies, ScriptHookV)
 └── Directory.Build.props/.targets
 external/    pinned submodules + the vendored ScriptHookV SDK
-tools/       build, test, format, tidy, check-projects, package
+tools/       build, test, format, check-projects, package
 packaging/   the text files that go into the release zip
-.github/     CI: build, tests, ASan, clang-tidy, and a release on every push to main
+.github/     CI: build, tests, ASan, and a release on every push to main
 dist/        all build output (git-ignored)
 AGENTS/      coding conventions
 ```

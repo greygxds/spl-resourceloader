@@ -13,7 +13,6 @@ struct DataFileTypeIndex
     [[nodiscard]] auto operator<=>(const DataFileTypeIndex&) const = default;
 };
 
-// NOLINTBEGIN(readability-identifier-naming): these keep RAGE's own spelling
 /// CDataFileMgr::DataFile, the entry a data-file mounter is handed. We allocate these ourselves,
 /// zeroed, so only the fields we write need to be right. FiveM
 /// gta-streaming-five/src/LoadStreamingFile.cpp:734 (its offset comments are off by 4).
@@ -43,7 +42,6 @@ struct DataFileTypeEnumEntryView
     uint32_t index; // +0x04
 };
 static_assert(sizeof(DataFileTypeEnumEntryView) == 8);
-// NOLINTEND(readability-identifier-naming)
 
 namespace DataFileLayout
 {

@@ -7,14 +7,12 @@ namespace spl::rage
 {
 class ForcedDevice;
 
-// NOLINTBEGIN(readability-identifier-naming): the object the game calls through
 /// What the game sees: a vtable pointer where every rage::fiDevice has one, then our state.
 struct ForcedDeviceObject
 {
     const void* const* vtable; // +0x00
     ForcedDevice* owner;       // +0x08
 };
-// NOLINTEND(readability-identifier-naming)
 
 /// A rage::fiDevice that opens one file whatever name it is asked for. The game's packfile
 /// manifest loader reads a fixed name under "localPack:/"; mounting this there makes it read a

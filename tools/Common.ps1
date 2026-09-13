@@ -40,7 +40,7 @@ function Get-MSBuildPath
 
 function Get-ClangToolPath
 {
-    param([Parameter(Mandatory)][string] $Name)   # 'clang-format.exe' / 'clang-tidy.exe'
+    param([Parameter(Mandatory)][string] $Name)   # 'clang-format.exe'
 
     $tool = Join-Path (Get-VsInstallPath) "VC\Tools\Llvm\x64\bin\$Name"
     if (-not (Test-Path $tool))
@@ -79,7 +79,7 @@ function Initialize-Submodules
     }
 }
 
-# Source files the formatter and clang-tidy care about: our code only, never external/.
+# Source files the formatter cares about: our code only, never external/.
 function Get-SourceFiles
 {
     $root = Get-RepoRoot

@@ -7,7 +7,6 @@
 
 namespace spl::rpf
 {
-// NOLINTBEGIN(readability-identifier-naming): on-disk RPF7 layout, kept verbatim
 /// RPF7 header, 16 bytes at the start of the file. There is no version field: identity is
 /// magic + encryption. FiveM vfs-core/src/VFSRagePackfile7.cpp:28-34, 63-76.
 struct RpfHeaderView
@@ -28,7 +27,6 @@ struct RpfEntryView
     uint32_t physFlags; // +0x0C, file: resource flags; directory: child count
 };
 static_assert(sizeof(RpfEntryView) == 16);
-// NOLINTEND(readability-identifier-naming)
 
 namespace RpfLayout
 {

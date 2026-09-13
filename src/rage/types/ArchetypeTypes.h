@@ -7,7 +7,6 @@
 
 namespace spl::rage
 {
-// NOLINTBEGIN(readability-identifier-naming): these keep RAGE's own spelling
 /// The start of CPedModelInfo, up to the stream folder. FiveM
 /// gta-streaming-five/src/LoadStreamingFile.cpp:2373 (the same layout on every build it supports).
 struct PedModelInfoView
@@ -20,7 +19,6 @@ struct PedModelInfoView
 };
 static_assert(offsetof(PedModelInfoView, hash) == 0x18);
 static_assert(offsetof(PedModelInfoView, streamFolder) == 0x1C8);
-// NOLINTEND(readability-identifier-naming)
 
 namespace ArchetypeLayout
 {

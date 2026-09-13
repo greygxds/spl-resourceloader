@@ -26,7 +26,6 @@ constexpr uint32_t kHeaderSizeBytes = 16;
 
 using ForwardFn = uint64_t (*)(void* self, uint64_t, uint64_t, uint64_t, uint64_t);
 
-// NOLINTBEGIN(readability-identifier-naming): RAGE's own layout
 /// rage::fiFindData, as FiveM's rage-device-five fiDevice.h declares it.
 struct FindDataView
 {
@@ -35,7 +34,6 @@ struct FindDataView
     uint64_t writeTime;  // +0x108
     uint32_t attributes; // +0x110
 };
-// NOLINTEND(readability-identifier-naming)
 
 [[nodiscard]] LooseResourceDevice& OwnerOf(void* self)
 {

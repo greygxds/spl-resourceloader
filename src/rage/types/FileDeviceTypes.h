@@ -56,7 +56,6 @@ constexpr size_t kSlotGetName = 46; ///< diagnostics only: verify it before trus
 constexpr size_t kKnownSlotCount = 47;
 } // namespace FileDeviceLayout
 
-// NOLINTBEGIN(readability-identifier-naming): these keep RAGE's own spelling
 /// fiCollection::RawEntry, one loose file of pgRawStreamer. FiveM
 /// gta-streaming-five/include/fiCollectionWrapper.h: a 16-byte packfile entry, a timestamp and
 /// the path the file was registered under. The retail name getters do not return that path,
@@ -72,7 +71,6 @@ struct RawCollectionEntryView
 };
 static_assert(offsetof(RawCollectionEntryView, fileName) == 0x18);
 static_assert(sizeof(RawCollectionEntryView) == 0x20);
-// NOLINTEND(readability-identifier-naming)
 
 /// rage::fiCollection, which pgRawStreamer is: the fiDevice slots, then its own. FiveM
 /// gta-streaming-five/include/fiCollectionWrapper.h. RawStreamerInterface proves the entry

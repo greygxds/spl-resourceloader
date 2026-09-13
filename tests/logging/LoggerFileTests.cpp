@@ -8,6 +8,7 @@
 #include <catch_amalgamated.hpp>
 
 #include "config/LoaderConfig.h"
+#include "core/Version.h"
 #include "logging/AsciiArt.h"
 #include "logging/Logger.h"
 #include "tests/TempTree.h"
@@ -66,7 +67,7 @@ TEST_CASE("Logger: the log opens with the version and no ASCII art", "[logging]"
     // The version line is at the very top and unprefixed; the art is console-only.
     INFO("log head: [" << log.substr(0, 120) << "]");
     REQUIRE(log.starts_with(spl::logging::VersionLine()));
-    REQUIRE(Contains(log, "Development"));
+    REQUIRE(Contains(log, spl::Version::kText));
     REQUIRE_FALSE(Contains(log, spl::logging::SplitBannerLines(spl::logging::kAsciiArt).front()));
 }
 

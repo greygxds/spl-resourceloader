@@ -1,6 +1,6 @@
 # Coding Conventions — Singleplayer Resource Loader
 
-These rules apply to all code in this repository. Where a rule is enforceable, `.clang-format` or `.clang-tidy` enforces it (§10).
+These rules apply to all code in this repository. Formatting is enforced by `.clang-format`.
 If something is not covered here, match the surrounding code.
 
 ---
@@ -67,8 +67,7 @@ Additional rules:
 ## 3. Game-specific naming (`rage/`, `memory/`, `hooking/`)
 
 - **Game structures** keep RAGE's own name when it is known. Structs that we lay over game memory get a `View` suffix and are never
-  constructed or owned by us: `strStreamingInfoManagerView`, `atPoolView`, `DataFileEntryView`. They live in `rage/types/`. These headers wrap their
-  contents in `// NOLINTBEGIN(readability-identifier-naming)` … `// NOLINTEND(…)`.
+  constructed or owned by us: `strStreamingInfoManagerView`, `atPoolView`, `DataFileEntryView`. They live in `rage/types/`.
 - **Fields at unknown offsets** are named after the offset: `pad_0x1C[…]`, `unk_0x1B8`. Every field has an offset comment (`// +0x018`), and every
   field we read has a `static_assert(offsetof(View, field) == 0x18)`.
 - **Vtable slots** are `constexpr size_t kSlot<Method>` constants inside a per-class namespace (`StreamingModuleLayout::kSlotFindSlot`). Raw numbers are never used at call sites.
@@ -222,40 +221,3 @@ Using `std::optional`:
   docs(plan): record the map-store reload trace
   ```
   A breaking change to the config file or resource layout adds `!` (`feat(config)!: rename resources key`) and explains the migration in the body.
-
----
-
-## 10. Enforcement (`.clang-tidy` excerpt)
-
-clang-tidy runs through Visual Studio's Code Analysis integration (`tools/tidy.ps1`, or *Analyze → Run Code Analysis* with Clang-Tidy enabled).
-It reads this repo's `.clang-tidy`.
-
-```yaml
-CheckOptions:
-  - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
-  - { key: readability-identifier-naming.ClassCase,              value: CamelCase }
-  - { key: readability-identifier-naming.StructCase,             value: CamelCase }
-  - { key: readability-identifier-naming.EnumCase,               value: CamelCase }
-  - { key: readability-identifier-naming.EnumConstantCase,       value: CamelCase }
-  - { key: readability-identifier-naming.TypeAliasCase,          value: CamelCase }
-  - { key: readability-identifier-naming.TemplateParameterCase,  value: CamelCase }
-  - { key: readability-identifier-naming.FunctionCase,           value: CamelCase }
-  - { key: readability-identifier-naming.MethodCase,             value: CamelCase }
-  - { key: readability-identifier-naming.VariableCase,           value: camelBack }
-  - { key: readability-identifier-naming.ParameterCase,          value: camelBack }
-  - { key: readability-identifier-naming.PublicMemberCase,       value: camelBack }
-  - { key: readability-identifier-naming.PrivateMemberCase,      value: camelBack }
-  - { key: readability-identifier-naming.PrivateMemberPrefix,    value: m_ }
-  - { key: readability-identifier-naming.ProtectedMemberCase,    value: camelBack }
-  - { key: readability-identifier-naming.ProtectedMemberPrefix,  value: m_ }
-  - { key: readability-identifier-naming.ClassMemberCase,        value: camelBack }
-  - { key: readability-identifier-naming.ClassMemberPrefix,      value: s_ }
-  - { key: readability-identifier-naming.GlobalVariableCase,     value: camelBack }
-  - { key: readability-identifier-naming.GlobalVariablePrefix,   value: g_ }
-  - { key: readability-identifier-naming.ConstexprVariableCase,  value: CamelCase }
-  - { key: readability-identifier-naming.ConstexprVariablePrefix, value: k }
-  - { key: readability-identifier-naming.MacroDefinitionCase,    value: UPPER_CASE }
-  - { key: readability-identifier-naming.MacroDefinitionPrefix,  value: SPL_ }
-```
-The full check list (enabled families and pragmatic exclusions for reverse-engineering code) is in `.clang-tidy`.
-`NOLINT` is allowed only with a reason (`// NOLINT(…): game layout`), and mainly in `rage/` and `memory/`.

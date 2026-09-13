@@ -28,9 +28,6 @@
     <UseDebugLibraries Condition="'$(Configuration)' == 'Debug'">true</UseDebugLibraries>
     <UseDebugLibraries Condition="'$(Configuration)' != 'Debug'">false</UseDebugLibraries>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <!-- clang-tidy is wired up but off by default for build speed; tools/tidy.ps1 turns it on. -->
-    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
-    <RunCodeAnalysis Condition="'$(RunCodeAnalysis)' == ''">false</RunCodeAnalysis>
   </PropertyGroup>
 
   <ItemDefinitionGroup>

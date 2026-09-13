@@ -77,6 +77,8 @@ jobs:
       - name: Build Release
         run: >
           msbuild SpResourceLoader.sln /m
+          /p:UseMultiToolTask=true
+          /p:EnforceProcessCountAcrossBuilds=true
           /p:Configuration=Release
           /p:Platform=x64
           /p:SplWarningsAsErrors=true
@@ -91,18 +93,10 @@ jobs:
             }
           }
 
-      - name: Build Debug
-        run: >
-          msbuild SpResourceLoader.sln /m
-          /p:Configuration=Debug
-          /p:Platform=x64
-          /p:SplWarningsAsErrors=true
-          -verbosity:minimal
-
       - name: Run tests
         shell: pwsh
         run: |
-          dist/Debug/spl_tests.exe --reporter compact
+          dist/Release/spl_tests.exe --reporter compact
           if ($LASTEXITCODE -ne 0) { throw "spl_tests failed with exit code $LASTEXITCODE" }
 
       - name: Check formatting
@@ -145,6 +139,8 @@ jobs:
       - name: Build tests with AddressSanitizer
         run: >
           msbuild SpResourceLoader.Core.slnf /m
+          /p:UseMultiToolTask=true
+          /p:EnforceProcessCountAcrossBuilds=true
           /p:Configuration=Debug
           /p:Platform=x64
           /p:EnableASAN=true

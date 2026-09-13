@@ -11,14 +11,12 @@ namespace spl::rage
 {
 class LooseResourceDevice;
 
-// NOLINTBEGIN(readability-identifier-naming): the object the game calls through
 /// What the game sees: a vtable pointer where every rage::fiDevice has one, then our state.
 struct LooseResourceDeviceObject
 {
     const void* const* vtable;  // +0x00
     LooseResourceDevice* owner; // +0x08
 };
-// NOLINTEND(readability-identifier-naming)
 
 /// A rage::fiDevice in front of one of our fiDeviceRelative mounts that lets the game stream
 /// loose resources larger than 16 MiB.

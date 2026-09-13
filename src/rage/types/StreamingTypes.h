@@ -68,7 +68,6 @@ enum class LoadState : uint8_t
 /// the wrapper that makes the call (conventions section 5).
 constexpr uint32_t kInvalidSlotRaw = 0xFFFFFFFF;
 
-// NOLINTBEGIN(readability-identifier-naming): these keep RAGE's own spelling
 /// One streaming entry. Copied out of game memory rather than viewed, because it is small
 /// and callers keep it. flags & 3 is the load state (see LoadState).
 struct StreamingDataEntry
@@ -128,7 +127,6 @@ struct strStreamingInfoManagerView
 static_assert(offsetof(strStreamingInfoManagerView, numEntries) == 0x18);
 static_assert(offsetof(strStreamingInfoManagerView, moduleMgr) == 0x1B8);
 static_assert(offsetof(strStreamingInfoManagerView, numPendingRequests) == 0x1E0);
-// NOLINTEND(readability-identifier-naming)
 
 [[nodiscard]] constexpr LoadState LoadStateOf(const StreamingDataEntry& entry)
 {

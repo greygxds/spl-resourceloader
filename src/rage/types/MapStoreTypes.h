@@ -11,7 +11,6 @@
 
 namespace spl::rage
 {
-// NOLINTBEGIN(readability-identifier-naming): these keep RAGE's own spelling
 /// CItypDependencies and CImapDependencies share this shape: a name hash and the hashes it
 /// depends on. FiveM gta-streaming-five/src/LoadStreamingFile.cpp:2257.
 struct ManifestDependenciesView
@@ -34,7 +33,6 @@ struct ManifestChunkView
 };
 static_assert(offsetof(ManifestChunkView, mapDataDependencies) == 0x10);
 static_assert(offsetof(ManifestChunkView, mapTypesDependencies) == 0x30);
-// NOLINTEND(readability-identifier-naming)
 
 namespace ManifestChunkLayout
 {
