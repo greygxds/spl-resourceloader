@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Dev|x64">
+      <Configuration>Dev</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1002}</ProjectGuid>
+    <RootNamespace>spl_memory</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\props\Dependencies.props" />
+
+  <PropertyGroup>
+    <SplUsePch>true</SplUsePch>
+    <OutDir>$(SplLibDir)</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\Pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\hooking\ImportHook.cpp" />
+    <ClCompile Include="$(SplRoot)src\hooking\HookManager.cpp" />
+    <ClCompile Include="$(SplRoot)src\memory\CodePatch.cpp" />
+    <ClCompile Include="$(SplRoot)src\memory\FileVersion.cpp" />
+    <ClCompile Include="$(SplRoot)src\memory\ImageFile.cpp" />
+    <ClCompile Include="$(SplRoot)src\memory\Module.cpp" />
+    <ClCompile Include="$(SplRoot)src\memory\Pattern.cpp" />
+    <ClCompile Include="$(SplRoot)src\memory\PatternScanner.cpp" />
+    <!-- A rage/ type with no signature or game call in it, so the tests can link it. -->
+    <ClCompile Include="$(SplRoot)src\rage\LooseResourceDevice.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\ForcedDevice.cpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)src\hooking\ImportHook.h" />
+    <ClInclude Include="$(SplRoot)src\hooking\HookManager.h" />
+    <ClInclude Include="$(SplRoot)src\memory\Address.h" />
+    <ClInclude Include="$(SplRoot)src\memory\CodePatch.h" />
+    <ClInclude Include="$(SplRoot)src\memory\FileVersion.h" />
+    <ClInclude Include="$(SplRoot)src\memory\ImageFile.h" />
+    <ClInclude Include="$(SplRoot)src\memory\Module.h" />
+    <ClInclude Include="$(SplRoot)src\memory\Pattern.h" />
+    <ClInclude Include="$(SplRoot)src\memory\PatternScanner.h" />
+    <ClInclude Include="$(SplRoot)src\rage\LooseResourceDevice.h" />
+    <ClInclude Include="$(SplRoot)src\rage\ForcedDevice.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\spl_core\spl_core.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1001}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\minhook\minhook.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1006}</Project>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

@@ -1,0 +1,259 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: false
+
+      # A gitlink without its .gitmodules entry would otherwise fail much later, inside the build.
+      - name: Validate and initialize submodules
+        shell: pwsh
+        run: |
+          $declaredPaths = [System.Collections.Generic.HashSet[string]]::new()
+          foreach ($line in Get-Content .gitmodules) {
+            if ($line -match '^\s*path\s*=\s*(.+?)\s*$') {
+              [void]$declaredPaths.Add($Matches[1])
+            }
+          }
+
+          $trackedPaths = git ls-files -s | ForEach-Object {
+            $parts = $_ -split '\s+', 4
+            if ($parts.Count -eq 4 -and $parts[0] -eq '160000') {
+              $parts[3]
+            }
+          }
+
+          foreach ($path in $trackedPaths) {
+            if (-not $declaredPaths.Contains($path)) {
+              throw "Tracked submodule '$path' has no matching entry in .gitmodules"
+            }
+          }
+
+          git submodule sync --recursive
+          git submodule update --init --recursive
+
+      - name: Generate build version header
+        id: version
+        shell: pwsh
+        run: |
+          $buildNumber = [int]"${{ github.run_number }}"
+          $buildDate = (Get-Date).ToUniversalTime().ToString('yyyy.MM.dd')
+          $version = "${buildDate}_$buildNumber"
+          $sha = "${{ github.sha }}".Substring(0, 8)
+          @"
+          #pragma once
+          #define SPL_BUILD_NUMBER $buildNumber
+          #define SPL_VERSION_TEXT "Build $version"
+          #define SPL_COMMIT_SHA "$sha"
+          "@ | Set-Content -Encoding ascii src/core/BuildVersion.h
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "build_number=$buildNumber" >> $env:GITHUB_OUTPUT
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build Release
+        run: >
+          msbuild SpResourceLoader.sln /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /p:SplWarningsAsErrors=true
+          -verbosity:minimal
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          foreach ($file in 'resourceLoader.asi', 'resourceLoader.pdb', 'spl_sigcheck.exe') {
+            if (-not (Test-Path "dist/Release/$file")) {
+              throw "Release build did not produce $file"
+            }
+          }
+
+      - name: Build Debug
+        run: >
+          msbuild SpResourceLoader.sln /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /p:SplWarningsAsErrors=true
+          -verbosity:minimal
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          dist/Debug/spl_tests.exe --reporter compact
+          if ($LASTEXITCODE -ne 0) { throw "spl_tests failed with exit code $LASTEXITCODE" }
+
+      - name: Check formatting
+        shell: pwsh
+        run: tools/format.ps1 -Check
+
+      - name: Check project files
+        shell: pwsh
+        run: tools/check-projects.ps1
+
+      - name: Package
+        shell: pwsh
+        run: tools/package.ps1 -SkipBuild -SkipTests -Version "${{ steps.version.outputs.version }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: resourceLoader-build-${{ steps.version.outputs.version }}
+          retention-days: 14
+          path: |
+            dist/package/*.zip
+            dist/package/*.sha256
+
+  # Only the game-independent tests: the ASI itself is never built with ASan.
+  sanitizers:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Build tests with AddressSanitizer
+        run: >
+          msbuild SpResourceLoader.Core.slnf /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /p:EnableASAN=true
+          -verbosity:minimal
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          # The ASan runtime DLL ships with the compiler, not with Windows, and has to come from
+          # the toolset that built the tests; a runner can have more than one installed.
+          $tlog = Get-ChildItem dist/intermediate/spl_tests/Debug -Recurse -Filter 'link.read.1.tlog' | Select-Object -First 1
+          $toolset = (Select-String -Path $tlog.FullName -Pattern 'MSVC\\(1[0-9.]+)' -Encoding unicode | Select-Object -First 1).Matches[0].Groups[1].Value
+          Write-Host "Tests were linked with MSVC $toolset"
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $env:PATH = "$vs\VC\Tools\MSVC\$toolset\bin\Hostx64\x64;$env:PATH"
+          dist/Debug/spl_tests.exe --reporter compact
+          if ($LASTEXITCODE -ne 0) { throw "spl_tests failed under ASan with exit code $LASTEXITCODE" }
+
+  # clang-tidy reports warnings rather than failing, and rebuilds everything, so it neither
+  # blocks nor slows the release.
+  analyze:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Run clang-tidy
+        shell: pwsh
+        run: tools/tidy.ps1 -Core
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build, sanitizers]
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Calculate release identity
+        shell: pwsh
+        run: |
+          $version = "${{ needs.build.outputs.version }}"
+          $buildNumber = "${{ needs.build.outputs.build_number }}"
+          $releaseTag = "build-$version"
+
+          git fetch --tags
+          $existingTag = git tag --list $releaseTag
+          if ($existingTag) {
+            $existingSha = (git rev-parse "${releaseTag}^{}").Trim()
+            if ($existingSha -ne "${{ github.sha }}") {
+              throw "Tag $releaseTag already points to $existingSha, not ${{ github.sha }}"
+            }
+
+            Write-Host "Tag $releaseTag already points to this commit; reusing it"
+          }
+
+          "BUILD_NUMBER=$buildNumber" >> $env:GITHUB_ENV
+          "VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_TAG=$releaseTag" >> $env:GITHUB_ENV
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: resourceLoader-build-${{ needs.build.outputs.version }}
+          path: release
+
+      - name: Verify downloaded artifact
+        shell: pwsh
+        run: |
+          $zip = "release/resourceLoader-$env:VERSION.zip"
+          if (-not (Test-Path $zip)) {
+            throw "Downloaded artifact does not contain resourceLoader-$env:VERSION.zip"
+          }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zip))
+          try {
+            if (-not ($archive.Entries | Where-Object FullName -eq 'resourceLoader.asi')) {
+              throw "$zip does not contain resourceLoader.asi"
+            }
+          } finally {
+            $archive.Dispose()
+          }
+
+      - name: Generate release notes
+        shell: pwsh
+        run: .github/scripts/generate-release-notes.ps1
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Build ${{ env.VERSION }}
+          body_path: release-notes.md
+          overwrite_files: true
+          files: |
+            release/*.zip
+            release/*.sha256

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\sigcheck">
+      <UniqueIdentifier>{8E2B6C51-3F4A-4B7D-9C10-2A5E7F9D0B01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rage">
+      <UniqueIdentifier>{8E2B6C51-3F4A-4B7D-9C10-2A5E7F9D0B02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rage\signatures">
+      <UniqueIdentifier>{8E2B6C51-3F4A-4B7D-9C10-2A5E7F9D0B03}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\sigcheck\SigCheck.cpp">
+      <Filter>src\sigcheck</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\AddressResolver.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\GameBuild.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\signatures\Signatures.cpp">
+      <Filter>src\rage\signatures</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

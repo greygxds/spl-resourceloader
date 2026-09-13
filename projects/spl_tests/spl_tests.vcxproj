@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Dev|x64">
+      <Configuration>Dev</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1005}</ProjectGuid>
+    <RootNamespace>spl_tests</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\props\Dependencies.props" />
+
+  <PropertyGroup>
+    <SplNeedsCatch2>true</SplNeedsCatch2>
+    <ExternalIncludePath>$(SplRoot)external\Catch2\extras;$(ExternalIncludePath)</ExternalIncludePath>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- So a test can include the shared "tests/TempTree.h" helper. -->
+      <AdditionalIncludeDirectories>$(SplRoot);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- Where the manifest corpus lives, so a test does not guess at a relative path. -->
+      <PreprocessorDefinitions>SPL_TEST_FIXTURES=R"($(SplRoot)tests\fixtures)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Catch2's amalgamated build supplies main(); it is third-party, so it compiles
+       without our warning settings. -->
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)tests\console\CommandRegistryTests.cpp" />
+    <ClCompile Include="$(SplRoot)external\Catch2\extras\catch_amalgamated.cpp">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <ConformanceMode>false</ConformanceMode>
+    </ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)tests\config\ConfigFileTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\config\ConfigLoaderTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\core\CrashReportTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\core\LoadSummaryTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\core\PathsTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\core\ResultTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\core\SessionGuardTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\core\VersionTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\hooking\ImportHookTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\hooking\HookManagerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\logging\AsciiArtTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\logging\LoggerFileTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\logging\LoggerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\manifest\LuaManifestLoaderTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\manifest\ManifestCorpusTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\manifest\ManifestLexerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\manifest\ManifestParserTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\manifest\ResourceManifestTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\mods\AssemblyParserTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\mods\ModExtractorTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\mods\ModOverlayTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\mods\ModsScannerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\AddressTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\CodePatchTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\FileVersionTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\ImageFileTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\ModuleTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\PatternScannerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\memory\PatternTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\LooseResourceDeviceTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\ForcedDeviceTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\MapStoreTypesTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\StreamingTypesTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\VfsPathTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\resource\ResourceManagerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\resource\ResourceScannerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rpf\RpfReaderTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\AssetRegistryTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\AssetScannerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\AssetTypeTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\DataFileTypeTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\DiscoveryBenchmarkTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\RscHeaderTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\StreamingManagerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\streaming\StreamingPlanTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\util\GlobTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\util\HashTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\util\StringsTests.cpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)tests\TempTree.h" />
+    <ClInclude Include="$(SplRoot)tests\rpf\RpfBuilder.h" />
+    <ClInclude Include="$(SplRoot)tests\streaming\StreamTree.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\spl_core\spl_core.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1001}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\spl_memory\spl_memory.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1002}</Project>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

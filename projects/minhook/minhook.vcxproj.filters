@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="external">
+      <UniqueIdentifier>{34ad6a3c-736f-56af-be0d-d44cde5f1986}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\minhook">
+      <UniqueIdentifier>{6e00330a-9428-59c8-a958-e930d8e6753a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)external\minhook\src\buffer.c">
+      <Filter>external\minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\minhook\src\hook.c">
+      <Filter>external\minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\minhook\src\trampoline.c">
+      <Filter>external\minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\minhook\src\hde\hde32.c">
+      <Filter>external\minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\minhook\src\hde\hde64.c">
+      <Filter>external\minhook</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

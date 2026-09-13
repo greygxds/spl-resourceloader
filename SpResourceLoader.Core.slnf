@@ -1,0 +1,13 @@
+{
+  "solution": {
+    "path": "SpResourceLoader.sln",
+    "projects": [
+      "projects\\spl_core\\spl_core.vcxproj",
+      "projects\\spl_memory\\spl_memory.vcxproj",
+      "projects\\minhook\\minhook.vcxproj",
+      "projects\\lua\\lua.vcxproj",
+      "projects\\spl_sigcheck\\spl_sigcheck.vcxproj",
+      "projects\\spl_tests\\spl_tests.vcxproj"
+    ]
+  }
+}

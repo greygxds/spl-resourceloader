@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Dev|x64">
+      <Configuration>Dev</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1003}</ProjectGuid>
+    <RootNamespace>spl_game</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\props\Dependencies.props" />
+  <Import Project="$(MSBuildThisFileDirectory)..\props\ScriptHookV.props" />
+
+  <PropertyGroup>
+    <SplUsePch>true</SplUsePch>
+    <OutDir>$(SplLibDir)</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\rage\InteriorProxyPool.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\ConsoleCommands.cpp" />
+    <ClCompile Include="$(SplRoot)src\Pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\core\Application.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\StartGate.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\CrashHandler.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\AddressResolver.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\ContentInterface.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\DataFileInterface.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\FileDeviceInterface.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\GameAddresses.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\GameBuild.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\GamePatches.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\InitHooks.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\ManifestChunkLoader.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\MapStoreReloader.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\Natives.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\OverrideHooks.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\RageBridge.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\RageStreamingBackend.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\RawStreamerInterface.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\SafeCall.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\StreamingInterface.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\signatures\Signatures.cpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)src\rage\InteriorProxyPool.h" />
+    <ClInclude Include="$(SplRoot)src\core\ConsoleCommands.h" />
+    <ClInclude Include="$(SplRoot)src\core\Application.h" />
+    <ClInclude Include="$(SplRoot)src\core\StartGate.h" />
+    <ClInclude Include="$(SplRoot)src\core\CrashHandler.h" />
+    <ClInclude Include="$(SplRoot)src\rage\AddressResolver.h" />
+    <ClInclude Include="$(SplRoot)src\rage\ContentInterface.h" />
+    <ClInclude Include="$(SplRoot)src\rage\DataFileInterface.h" />
+    <ClInclude Include="$(SplRoot)src\rage\FileDeviceInterface.h" />
+    <ClInclude Include="$(SplRoot)src\rage\GameAddresses.h" />
+    <ClInclude Include="$(SplRoot)src\rage\GameBuild.h" />
+    <ClInclude Include="$(SplRoot)src\rage\GamePatches.h" />
+    <ClInclude Include="$(SplRoot)src\rage\InitHooks.h" />
+    <ClInclude Include="$(SplRoot)src\rage\ManifestChunkLoader.h" />
+    <ClInclude Include="$(SplRoot)src\rage\MapStoreReloader.h" />
+    <ClInclude Include="$(SplRoot)src\rage\Natives.h" />
+    <ClInclude Include="$(SplRoot)src\rage\OverrideHooks.h" />
+    <ClInclude Include="$(SplRoot)src\rage\RageBridge.h" />
+    <ClInclude Include="$(SplRoot)src\rage\RageStreamingBackend.h" />
+    <ClInclude Include="$(SplRoot)src\rage\RawStreamerInterface.h" />
+    <ClInclude Include="$(SplRoot)src\rage\ReadableMemory.h" />
+    <ClInclude Include="$(SplRoot)src\rage\SafeCall.h" />
+    <ClInclude Include="$(SplRoot)src\rage\StreamingInterface.h" />
+    <ClInclude Include="$(SplRoot)src\rage\VfsPath.h" />
+    <ClInclude Include="$(SplRoot)src\rage\signatures\SignatureSpec.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\ArchetypeTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\DataFileTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\FileDeviceTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\MapStoreTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\StreamingTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\VirtualCall.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\spl_core\spl_core.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1001}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\spl_memory\spl_memory.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1002}</Project>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

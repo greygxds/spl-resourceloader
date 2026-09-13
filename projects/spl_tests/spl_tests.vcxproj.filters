@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="tests\console">
+      <UniqueIdentifier>{b1dc4afb-3391-514f-b270-cb1df0af6a13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external">
+      <UniqueIdentifier>{34ad6a3c-736f-56af-be0d-d44cde5f1986}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\Catch2">
+      <UniqueIdentifier>{102f0fc4-64bd-5dd9-bb91-5cdd75fe097c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{6d40c224-f8f3-515f-adba-6fc12021fcde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\config">
+      <UniqueIdentifier>{4918e4a0-288d-5c86-a966-f193272664d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\core">
+      <UniqueIdentifier>{482fd12a-55a5-5811-b594-5e6bd6c7d0bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\hooking">
+      <UniqueIdentifier>{91a66029-3ca3-5226-b918-8c0646cd49ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\logging">
+      <UniqueIdentifier>{a5e0cc8f-39ae-5998-a116-ea17a2f13c61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\manifest">
+      <UniqueIdentifier>{dc7adb09-23e6-5a45-8cb9-0fced704ddbf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\mods">
+      <UniqueIdentifier>{D47A2E4B-5B80-4BA3-B0FD-CFE90E4CB3AE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\memory">
+      <UniqueIdentifier>{2f651e94-e32b-5a23-b834-bf619b13b756}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\rage">
+      <UniqueIdentifier>{b4c91d57-0e2a-5f3b-9d68-7a1c2e5b0f34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\resource">
+      <UniqueIdentifier>{f10e7988-34fa-567c-b737-aba6ab821ca4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\rpf">
+      <UniqueIdentifier>{5E3A1F2C-8B4D-4A7E-9C1D-2F6B3A8D4E5F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\streaming">
+      <UniqueIdentifier>{7e62fac0-89c1-5f54-b0ce-242b1c5f47e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\util">
+      <UniqueIdentifier>{54a6e7d3-7d5a-5da2-815e-d25f0c0fa85e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)tests\console\CommandRegistryTests.cpp">
+      <Filter>tests\console</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\DiscoveryBenchmarkTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\ImageFileTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\core\CrashReportTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\core\SessionGuardTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\Catch2\extras\catch_amalgamated.cpp">
+      <Filter>external\Catch2</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\config\ConfigFileTests.cpp">
+      <Filter>tests\config</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\config\ConfigLoaderTests.cpp">
+      <Filter>tests\config</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\core\LoadSummaryTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\core\PathsTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\core\ResultTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\core\VersionTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\hooking\ImportHookTests.cpp">
+      <Filter>tests\hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\hooking\HookManagerTests.cpp">
+      <Filter>tests\hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\logging\AsciiArtTests.cpp">
+      <Filter>tests\logging</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\logging\LoggerFileTests.cpp">
+      <Filter>tests\logging</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\logging\LoggerTests.cpp">
+      <Filter>tests\logging</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\manifest\LuaManifestLoaderTests.cpp">
+      <Filter>tests\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\manifest\ManifestCorpusTests.cpp">
+      <Filter>tests\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\manifest\ManifestLexerTests.cpp">
+      <Filter>tests\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\manifest\ManifestParserTests.cpp">
+      <Filter>tests\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\manifest\ResourceManifestTests.cpp">
+      <Filter>tests\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\mods\AssemblyParserTests.cpp">
+      <Filter>tests\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\mods\ModExtractorTests.cpp">
+      <Filter>tests\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\mods\ModOverlayTests.cpp">
+      <Filter>tests\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\mods\ModsScannerTests.cpp">
+      <Filter>tests\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\AddressTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\CodePatchTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\FileVersionTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\ModuleTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\PatternScannerTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\memory\PatternTests.cpp">
+      <Filter>tests\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\StreamingTypesTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\LooseResourceDeviceTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\ForcedDeviceTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\MapStoreTypesTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\VfsPathTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\resource\ResourceManagerTests.cpp">
+      <Filter>tests\resource</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\resource\ResourceScannerTests.cpp">
+      <Filter>tests\resource</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rpf\RpfReaderTests.cpp">
+      <Filter>tests\rpf</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\AssetScannerTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\AssetRegistryTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\AssetTypeTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\DataFileTypeTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\RscHeaderTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\StreamingPlanTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\streaming\StreamingManagerTests.cpp">
+      <Filter>tests\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\util\GlobTests.cpp">
+      <Filter>tests\util</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\util\HashTests.cpp">
+      <Filter>tests\util</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\util\StringsTests.cpp">
+      <Filter>tests\util</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)tests\TempTree.h">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)tests\rpf\RpfBuilder.h">
+      <Filter>tests\rpf</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)tests\streaming\StreamTree.h">
+      <Filter>tests\streaming</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

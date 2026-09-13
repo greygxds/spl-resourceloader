@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\console">
+      <UniqueIdentifier>{4d24da61-ef98-5353-9bfc-60b48ced688d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{9da26290-43ad-5f1e-a4d0-aa825489fd72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\config">
+      <UniqueIdentifier>{fcc302e4-740b-50a7-afd4-b3fadac16a21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{98637e92-1c44-5bfa-8932-160f3a2e64da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\logging">
+      <UniqueIdentifier>{bf11b812-e46a-539f-a2d0-b79451b573a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\manifest">
+      <UniqueIdentifier>{f1fb7d6e-b137-5fed-8c83-df53c5d1808f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\mods">
+      <UniqueIdentifier>{2FCBCFC8-6078-4CF9-9FB5-2045CBB0BA7A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\platform">
+      <UniqueIdentifier>{b6362920-3690-5097-b305-ee64dbcdd0c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\resource">
+      <UniqueIdentifier>{f987a365-72b7-51fb-9d6b-babbe87d1556}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rpf">
+      <UniqueIdentifier>{AA49C4B2-DEBD-4161-BBFB-156A8F6B5CA0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\streaming">
+      <UniqueIdentifier>{88c8c59a-f601-5d1e-b5e9-ecb02fe867da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\util">
+      <UniqueIdentifier>{84daee92-9b78-5216-ae0a-1bf966ea7f93}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\console\ConsoleInput.cpp">
+      <Filter>src\console</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\console\CommandRegistry.cpp">
+      <Filter>src\console</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\CrashReport.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\SessionGuard.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\Pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\config\ConfigLoader.cpp">
+      <Filter>src\config</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\config\DefaultConfig.cpp">
+      <Filter>src\config</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\LoadSummary.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\Paths.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\Result.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\Version.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\logging\Logger.cpp">
+      <Filter>src\logging</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\manifest\LuaManifestLoader.cpp">
+      <Filter>src\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\manifest\ManifestLexer.cpp">
+      <Filter>src\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\manifest\ManifestParser.cpp">
+      <Filter>src\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\manifest\ResourceManifest.cpp">
+      <Filter>src\manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\AssemblyParser.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\ModExtractor.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\ModOverlay.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\ModsScanner.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\resource\Resource.cpp">
+      <Filter>src\resource</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\resource\ResourceManager.cpp">
+      <Filter>src\resource</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\resource\ResourceScanner.cpp">
+      <Filter>src\resource</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\AssetScanner.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\AssetRegistry.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\AssetType.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\DataFileType.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\RscHeader.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\StreamingPlan.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\streaming\StreamingManager.cpp">
+      <Filter>src\streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rpf\RpfReader.cpp">
+      <Filter>src\rpf</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\util\Glob.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\util\Strings.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)src\console\ConsoleInput.h">
+      <Filter>src\console</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\console\CommandQueue.h">
+      <Filter>src\console</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\console\CommandRegistry.h">
+      <Filter>src\console</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\CrashReport.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\SessionGuard.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\Pch.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\config\ConfigLoader.h">
+      <Filter>src\config</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\config\DefaultConfig.h">
+      <Filter>src\config</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\config\LoaderConfig.h">
+      <Filter>src\config</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\LoadSummary.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\Paths.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\Result.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\Version.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\logging\AsciiArt.h">
+      <Filter>src\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\logging\Logger.h">
+      <Filter>src\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\manifest\LuaManifestLoader.h">
+      <Filter>src\manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\manifest\ManifestLexer.h">
+      <Filter>src\manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\manifest\ManifestParser.h">
+      <Filter>src\manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\manifest\ResourceManifest.h">
+      <Filter>src\manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\AssemblyParser.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModExtractor.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModOverlay.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModPackage.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModsScanner.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\platform\Win32.h">
+      <Filter>src\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\resource\Resource.h">
+      <Filter>src\resource</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\resource\ResourceManager.h">
+      <Filter>src\resource</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\resource\ResourceScanner.h">
+      <Filter>src\resource</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rpf\RpfReader.h">
+      <Filter>src\rpf</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rpf\RpfTypes.h">
+      <Filter>src\rpf</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\AssetScanner.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\AssetRegistry.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\AssetType.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\DataFileType.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\RscHeader.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\StreamAsset.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\StreamingPlan.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\StreamingBackend.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\streaming\StreamingManager.h">
+      <Filter>src\streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\util\Glob.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\util\Hash.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\util\Strings.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

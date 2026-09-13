@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Shared compiler/linker settings for every project in the solution.
+       Imported through Directory.Build.props, which MSBuild auto-imports. -->
+
+  <!-- Everything the build produces lives under dist/, so the repository root stays clean.
+       dist/<Configuration>/ holds only what you actually run: resourceLoader.asi, spl_tests.exe
+       and their PDBs. The static libraries are link inputs, not deliverables, so they go to
+       SplLibDir with the rest of the intermediates; each static-library project overrides
+       OutDir to it (ConfigurationType is not known yet at this point, which is why the
+       projects opt in rather than this sheet deciding for them).
+       The whole of dist/ is git-ignored and tools/build.ps1 -Clean removes it. -->
+  <PropertyGroup Label="SplOutput">
+    <!-- Normalized, so paths in build logs and tool windows read as G:\repo\dist\... rather
+         than G:\repo\projects\props\..\..\dist\... -->
+    <SplRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..'))</SplRoot>
+    <SplDistDir>$(SplRoot)dist\</SplDistDir>
+    <SplLibDir>$(SplDistDir)intermediate\lib\$(Configuration)\</SplLibDir>
+    <OutDir>$(SplDistDir)$(Configuration)\</OutDir>
+    <IntDir>$(SplDistDir)intermediate\$(MSBuildProjectName)\$(Configuration)\</IntDir>
+    <!-- Off locally, on in CI: MSBuild ... /p:SplWarningsAsErrors=true -->
+    <SplWarningsAsErrors Condition="'$(SplWarningsAsErrors)' == ''">false</SplWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Label="SplConfiguration">
+    <PlatformToolset Condition="'$(PlatformToolset)' == ''">v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)' == 'Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)' != 'Debug'">false</UseDebugLibraries>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <!-- clang-tidy is wired up but off by default for build speed; tools/tidy.ps1 turns it on. -->
+    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
+    <RunCodeAnalysis Condition="'$(RunCodeAnalysis)' == ''">false</RunCodeAnalysis>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 /Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>$(SplWarningsAsErrors)</TreatWarningAsError>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SDLCheck>true</SDLCheck>
+      <!-- Dependency headers are external: /W4 and code analysis ignore them. -->
+      <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <AdditionalIncludeDirectories>$(SplRoot)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE;TOML_EXCEPTIONS=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Debug: unit tests and stepping. -->
+  <ItemDefinitionGroup Condition="'$(Configuration)' == 'Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessorDefinitions>_DEBUG;SPL_DEV_TOOLS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- /RTC cannot be combined with AddressSanitizer, which CI turns on for one test run
+           with /p:EnableASAN=true. -->
+      <BasicRuntimeChecks Condition="'$(EnableASAN)' != 'true'">EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <!-- Dev: the normal in-game configuration. Release codegen plus dev probes. -->
+  <ItemDefinitionGroup Condition="'$(Configuration)' == 'Dev'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PreprocessorDefinitions>NDEBUG;SPL_DEV_TOOLS=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Release: shipping. -->
+  <ItemDefinitionGroup Condition="'$(Configuration)' == 'Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PreprocessorDefinitions>NDEBUG;SPL_DEV_TOOLS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Precompiled header src/Pch.h, opted into with <SplUsePch>true</SplUsePch>.
+       Every C++ project sets it; minhook (C sources) does not.
+       Each project compiles its own src/Pch.cpp with /Yc into its own IntDir. -->
+  <ItemDefinitionGroup Condition="'$(SplUsePch)' == 'true'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>Pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>

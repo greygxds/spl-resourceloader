@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{9da26290-43ad-5f1e-a4d0-aa825489fd72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\hooking">
+      <UniqueIdentifier>{c8669f93-d263-5548-ba24-1e0c0b403178}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\memory">
+      <UniqueIdentifier>{0d873be2-af42-512c-b119-0d81045edbd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rage">
+      <UniqueIdentifier>{6f1d2a4b-8c3e-5b7a-9e2d-4a1c3b5d7e90}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\memory\ImageFile.cpp">
+      <Filter>src\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\Pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\hooking\ImportHook.cpp">
+      <Filter>src\hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\hooking\HookManager.cpp">
+      <Filter>src\hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\memory\CodePatch.cpp">
+      <Filter>src\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\memory\FileVersion.cpp">
+      <Filter>src\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\memory\Module.cpp">
+      <Filter>src\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\LooseResourceDevice.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\ForcedDevice.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\memory\Pattern.cpp">
+      <Filter>src\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\memory\PatternScanner.cpp">
+      <Filter>src\memory</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)src\memory\ImageFile.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\hooking\ImportHook.h">
+      <Filter>src\hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\hooking\HookManager.h">
+      <Filter>src\hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\memory\Address.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\memory\CodePatch.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\memory\FileVersion.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\memory\Module.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\memory\Pattern.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\memory\PatternScanner.h">
+      <Filter>src\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\LooseResourceDevice.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\ForcedDevice.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

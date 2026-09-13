@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- MSBuild walks up from each .vcxproj until it finds a Directory.Build.props, so sitting
+       here covers every project under projects/ and keeps the repository root clean.
+       Imported before the project body. -->
+  <Import Project="$(MSBuildThisFileDirectory)props\Common.props" />
+</Project>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Dev|x64">
+      <Configuration>Dev</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1001}</ProjectGuid>
+    <RootNamespace>spl_core</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Dev|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\props\Dependencies.props" />
+
+  <PropertyGroup>
+    <SplUsePch>true</SplUsePch>
+    <OutDir>$(SplLibDir)</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\console\ConsoleInput.cpp" />
+    <ClCompile Include="$(SplRoot)src\console\CommandRegistry.cpp" />
+    <!-- miniz is third-party C, so it compiles without our warnings and without the C++
+         precompiled header. miniz.c holds the shared checksum helpers; only the
+         deflate/inflate core is used, the zip parts link away. -->
+    <ClCompile Include="$(SplRoot)external\miniz\miniz.c">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <ConformanceMode>false</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\miniz\miniz_tdef.c">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <ConformanceMode>false</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)external\miniz\miniz_tinfl.c">
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <ConformanceMode>false</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\Pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\config\ConfigLoader.cpp" />
+    <ClCompile Include="$(SplRoot)src\config\DefaultConfig.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\CrashReport.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\LoadSummary.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\Paths.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\Result.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\SessionGuard.cpp" />
+    <ClCompile Include="$(SplRoot)src\core\Version.cpp" />
+    <ClCompile Include="$(SplRoot)src\logging\Logger.cpp" />
+    <ClCompile Include="$(SplRoot)src\manifest\LuaManifestLoader.cpp" />
+    <ClCompile Include="$(SplRoot)src\manifest\ManifestLexer.cpp" />
+    <ClCompile Include="$(SplRoot)src\manifest\ManifestParser.cpp" />
+    <ClCompile Include="$(SplRoot)src\manifest\ResourceManifest.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\AssemblyParser.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\ModExtractor.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\ModOverlay.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\ModsScanner.cpp" />
+    <ClCompile Include="$(SplRoot)src\resource\Resource.cpp" />
+    <ClCompile Include="$(SplRoot)src\resource\ResourceManager.cpp" />
+    <ClCompile Include="$(SplRoot)src\resource\ResourceScanner.cpp" />
+    <ClCompile Include="$(SplRoot)src\rpf\RpfReader.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\AssetRegistry.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\AssetScanner.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\AssetType.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\DataFileType.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\RscHeader.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\StreamingManager.cpp" />
+    <ClCompile Include="$(SplRoot)src\streaming\StreamingPlan.cpp" />
+    <ClCompile Include="$(SplRoot)src\util\Glob.cpp" />
+    <ClCompile Include="$(SplRoot)src\util\Strings.cpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)src\console\ConsoleInput.h" />
+    <ClInclude Include="$(SplRoot)src\console\CommandQueue.h" />
+    <ClInclude Include="$(SplRoot)src\console\CommandRegistry.h" />
+    <ClInclude Include="$(SplRoot)src\core\CrashReport.h" />
+    <ClInclude Include="$(SplRoot)src\Pch.h" />
+    <ClInclude Include="$(SplRoot)src\config\ConfigLoader.h" />
+    <ClInclude Include="$(SplRoot)src\config\DefaultConfig.h" />
+    <ClInclude Include="$(SplRoot)src\config\LoaderConfig.h" />
+    <ClInclude Include="$(SplRoot)src\core\LoadSummary.h" />
+    <ClInclude Include="$(SplRoot)src\core\Paths.h" />
+    <ClInclude Include="$(SplRoot)src\core\Result.h" />
+    <ClInclude Include="$(SplRoot)src\core\SessionGuard.h" />
+    <ClInclude Include="$(SplRoot)src\core\Version.h" />
+    <ClInclude Include="$(SplRoot)src\logging\AsciiArt.h" />
+    <ClInclude Include="$(SplRoot)src\logging\Logger.h" />
+    <ClInclude Include="$(SplRoot)src\manifest\LuaManifestLoader.h" />
+    <ClInclude Include="$(SplRoot)src\manifest\ManifestLexer.h" />
+    <ClInclude Include="$(SplRoot)src\manifest\ManifestParser.h" />
+    <ClInclude Include="$(SplRoot)src\manifest\ResourceManifest.h" />
+    <ClInclude Include="$(SplRoot)src\mods\AssemblyParser.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModExtractor.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModOverlay.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModPackage.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModsScanner.h" />
+    <ClInclude Include="$(SplRoot)src\platform\Win32.h" />
+    <ClInclude Include="$(SplRoot)src\resource\Resource.h" />
+    <ClInclude Include="$(SplRoot)src\resource\ResourceManager.h" />
+    <ClInclude Include="$(SplRoot)src\resource\ResourceScanner.h" />
+    <ClInclude Include="$(SplRoot)src\rpf\RpfReader.h" />
+    <ClInclude Include="$(SplRoot)src\rpf\RpfTypes.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\AssetRegistry.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\AssetScanner.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\AssetType.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\DataFileType.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\RscHeader.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\StreamAsset.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\StreamingBackend.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\StreamingManager.h" />
+    <ClInclude Include="$(SplRoot)src\streaming\StreamingPlan.h" />
+    <ClInclude Include="$(SplRoot)src\util\Glob.h" />
+    <ClInclude Include="$(SplRoot)src\util\Hash.h" />
+    <ClInclude Include="$(SplRoot)src\util\Strings.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\lua\lua.vcxproj">
+      <Project>{5C1F3A20-1B4E-45C4-9A51-0D2E0B7C1007}</Project>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

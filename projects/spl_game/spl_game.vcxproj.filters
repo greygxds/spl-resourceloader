@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{9da26290-43ad-5f1e-a4d0-aa825489fd72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{98637e92-1c44-5bfa-8932-160f3a2e64da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rage">
+      <UniqueIdentifier>{6880c3fe-8b15-52df-bf51-8c18002b2de3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rage\signatures">
+      <UniqueIdentifier>{d875a131-f52f-5f59-bd03-9c3fa2b5c933}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\rage\types">
+      <UniqueIdentifier>{3f2a6c18-9d41-5a07-b6c5-1e7d0b9a4f22}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SplRoot)src\rage\InteriorProxyPool.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\ConsoleCommands.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\StartGate.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\CrashHandler.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\Pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\core\Application.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\AddressResolver.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\ContentInterface.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\DataFileInterface.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\FileDeviceInterface.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\InitHooks.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\ManifestChunkLoader.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\MapStoreReloader.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\Natives.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\GameAddresses.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\RageBridge.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\RageStreamingBackend.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\OverrideHooks.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\RawStreamerInterface.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\SafeCall.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\StreamingInterface.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\GameBuild.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\GamePatches.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\signatures\Signatures.cpp">
+      <Filter>src\rage\signatures</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(SplRoot)src\rage\InteriorProxyPool.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\ConsoleCommands.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\StartGate.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\CrashHandler.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\core\Application.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\AddressResolver.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\ContentInterface.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\DataFileInterface.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\FileDeviceInterface.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\InitHooks.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\ManifestChunkLoader.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\MapStoreReloader.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\Natives.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\GameAddresses.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\RageBridge.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\RageStreamingBackend.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\OverrideHooks.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\RawStreamerInterface.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\ReadableMemory.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\SafeCall.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\StreamingInterface.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\VfsPath.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\GameBuild.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\GamePatches.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\signatures\SignatureSpec.h">
+      <Filter>src\rage\signatures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\ArchetypeTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\DataFileTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\FileDeviceTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\MapStoreTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\StreamingTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\VirtualCall.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

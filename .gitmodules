@@ -1,0 +1,24 @@
+[submodule "external/minhook"]
+	path = external/minhook
+	url = https://github.com/TsudaKageyu/minhook
+	shallow = true
+[submodule "external/spdlog"]
+	path = external/spdlog
+	url = https://github.com/gabime/spdlog
+	shallow = true
+[submodule "external/tomlplusplus"]
+	path = external/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus
+	shallow = true
+[submodule "external/Catch2"]
+	path = external/Catch2
+	url = https://github.com/catchorg/Catch2
+	shallow = true
+[submodule "external/lua"]
+	path = external/lua
+	url = https://github.com/lua/lua
+	shallow = true
+[submodule "external/miniz"]
+	path = external/miniz
+	url = https://github.com/richgel999/miniz.git
+	shallow = true

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Include paths for the header-only dependencies (git submodules, pinned; see
+       external/DEPENDENCIES.md). They are external include paths, so /W4 and code
+       analysis ignore their headers. -->
+
+  <PropertyGroup>
+    <SplExternalDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\external'))</SplExternalDir>
+    <ExternalIncludePath>$(SplExternalDir)spdlog\include;$(SplExternalDir)tomlplusplus\include;$(SplExternalDir)minhook\include;$(SplExternalDir)lua;$(SplExternalDir)miniz;$(SplExternalDir)miniz-compat;$(ExternalIncludePath)</ExternalIncludePath>
+  </PropertyGroup>
+</Project>

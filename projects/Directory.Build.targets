@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Auto-imported by every project under projects/, after the project body.
+       $(SplRoot) comes from props/Common.props, which Directory.Build.props imported. -->
+
+  <!-- Fail early and with an actionable message when a dependency checkout is missing.
+       Version stamping is deliberately NOT a target here: CI writes src/core/BuildVersion.h,
+       and src/core/Version.h falls back to "Development" without it. -->
+  <Target Name="SplCheckPrerequisites" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(SplRoot)external\spdlog\include\spdlog\spdlog.h')"
+           Text="external/spdlog is missing. Run: git submodule update --init --recursive" />
+    <Error Condition="!Exists('$(SplRoot)external\tomlplusplus\include\toml++\toml.hpp')"
+           Text="external/tomlplusplus is missing. Run: git submodule update --init --recursive" />
+    <Error Condition="!Exists('$(SplRoot)external\minhook\include\MinHook.h')"
+           Text="external/minhook is missing. Run: git submodule update --init --recursive" />
+    <Error Condition="!Exists('$(SplRoot)external\lua\lua.h')"
+           Text="external/lua is missing. Run: git submodule update --init --recursive" />
+    <Error Condition="'$(SplNeedsCatch2)' == 'true' And !Exists('$(SplRoot)external\Catch2\extras\catch_amalgamated.cpp')"
+           Text="external/Catch2 is missing. Run: git submodule update --init --recursive" />
+
+    <!-- Only for the projects that import props/ScriptHookV.props. The SDK is committed, so
+         this should never fire; it catches a corrupted or partial checkout. -->
+    <Error Condition="'$(SplScriptHookVDir)' != '' And !Exists('$(SplScriptHookVDir)inc\main.h')"
+           Text="The ScriptHookV SDK headers are missing from external/scripthookv/inc. See external/scripthookv/README.md" />
+    <Error Condition="'$(SplScriptHookVDir)' != '' And !Exists('$(SplScriptHookVDir)lib\ScriptHookV.lib')"
+           Text="external/scripthookv/lib/ScriptHookV.lib is missing. See external/scripthookv/README.md" />
+  </Target>
+</Project>
