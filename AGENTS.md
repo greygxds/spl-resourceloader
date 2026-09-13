@@ -1,7 +1,15 @@
-This is a FiveM resource loader for singleplayer GTA V. You can access the local FiveM repo for read-only research in `"G:\Projects\fivem-master"`.
+# Agent Guidelines
 
-Remember - we don't need to copy everything 1:1. Invent new class names, new structs or whatever that will better suit our goal. We need to have a clean, maintainable project.
+This is a FiveM resource loader for singleplayer GTA V.
 
-All code must follow `AGENTS/CODING-CONVENTIONS.md` (C++20, naming, `std::optional` instead of sentinel values, logging, commits).
+## Reference material
 
-Do not overzealously comment everything that you write. Only comment things that are not easily understandable or that relate to quirks. Try to keep your comments to be one line long at most, preferably keeping them on the same line as the thing that you are describing instead of writing the comment one line above.
+The [FiveM source](https://github.com/citizenfx/fivem) may be used for research. If you have a local clone, treat it as read-only. Don't copy code 1:1. Pick class names, structs and designs that fit this project, and aim for a clean, maintainable codebase. When a magic value, offset or ordering rule comes from that source, cite the file and line it came from (see `NOTICE.md` and section 3 of the coding conventions).
+
+## Conventions
+
+All code must follow [`AGENTS/CODING-CONVENTIONS.md`](AGENTS/CODING-CONVENTIONS.md) (C++20, naming, `std::optional` instead of sentinel values, logging, commits).
+
+## Comments
+
+Don't comment everything. Only comment code that isn't obvious or that works around a quirk. Keep comments to one line, and put them at the end of the line they describe rather than on the line above when you can.
