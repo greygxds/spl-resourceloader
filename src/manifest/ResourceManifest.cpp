@@ -11,6 +11,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "manifest/ManifestParser.h"
+#include "util/FileTree.h"
 #include "util/Glob.h"
 #include "util/Strings.h"
 
@@ -84,6 +85,14 @@ std::string ResourceManifest::DescribeGames() const
 }
 
 ResourceManifest ResourceManifest::FromDocument(const ManifestDocument& document,
+                                                const std::filesystem::path& resourceRoot,
+                                                std::vector<ManifestDiagnostic>& diagnostics)
+{
+    return FromDocument(document, util::DiskFileTree::Instance(), resourceRoot, diagnostics);
+}
+
+ResourceManifest ResourceManifest::FromDocument(const ManifestDocument& document,
+                                                const util::IFileTree& files,
                                                 const std::filesystem::path& resourceRoot,
                                                 std::vector<ManifestDiagnostic>& diagnostics)
 {
@@ -161,7 +170,7 @@ ResourceManifest ResourceManifest::FromDocument(const ManifestDocument& document
                 continue;
             }
 
-            std::vector<std::string> resolved = util::GlobFiles(resourceRoot, pattern);
+            std::vector<std::string> resolved = util::GlobFiles(files, resourceRoot, pattern);
 
             // A wildcard-free pattern that matches nothing is kept as written: some data-file
             // types take a name rather than a path (ResourcesTest.cpp:228-231).

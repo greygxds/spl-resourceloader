@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <filesystem>
-#include <fstream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -14,6 +13,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "config/LoaderConfig.h"
+#include "core/Result.h"
 #include "logging/Logger.h"
 #include "manifest/ManifestParser.h"
 #include "manifest/ResourceManifest.h"
@@ -189,7 +189,7 @@ bool ResourceManager::AddResource(const config::LoaderConfig& config, ResourceCa
 
     Resource& resource = m_resources.emplace_back(std::move(candidate));
 
-    // Mods have their own disabled and priority lists, applied before they are extracted.
+    // Mods have their own disabled and priority lists, applied before they are laid out.
     if (!isMod && ContainsIgnoreCase(config.resources.disabled, name))
     {
         resource.SetState(ResourceState::Disabled, "disabled by configuration");
@@ -230,23 +230,21 @@ void ResourceManager::LoadManifest(Resource& resource)
 {
     const std::filesystem::path& path = resource.GetManifestPath();
 
-    std::ifstream stream{path, std::ios::binary};
-    if (!stream)
+    const Result<std::string> read = resource.GetFiles().Read(path);
+    if (!read)
     {
         resource.SetState(ResourceState::ManifestError, "manifest could not be opened");
         SPL_LOG_ERROR(Resource, "Cannot read the manifest of '{}' ('{}')", resource.GetName(),
                       util::ToUtf8(path));
         return;
     }
-
-    const std::string source{std::istreambuf_iterator<char>{stream},
-                             std::istreambuf_iterator<char>{}};
+    const std::string& source = read.GetValue();
 
     const std::string chunkName = util::ToUtf8(path.filename());
     manifest::ParseResult parsed = manifest::ManifestParser::Parse(source, chunkName);
 
     manifest::ResourceManifest typed = manifest::ResourceManifest::FromDocument(
-        parsed.document, resource.GetRootPath(), parsed.diagnostics);
+        parsed.document, resource.GetFiles(), resource.GetRootPath(), parsed.diagnostics);
 
     for (const manifest::ManifestDiagnostic& diagnostic : parsed.diagnostics)
     {

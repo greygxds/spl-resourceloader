@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <miniz.h>
 #include <optional>
@@ -400,6 +401,12 @@ Result<std::span<const char>> RpfReader::Locate(std::string_view path,
 
 Result<std::vector<std::byte>> RpfReader::ReadFile(std::string_view path) const
 {
+    return ReadPrefix(path, std::numeric_limits<std::size_t>::max());
+}
+
+Result<std::vector<std::byte>> RpfReader::ReadPrefix(std::string_view path,
+                                                     std::size_t maxBytes) const
+{
     Result<const RpfEntryView*> found = FindFile(path);
     if (!found)
     {
@@ -408,14 +415,20 @@ Result<std::vector<std::byte>> RpfReader::ReadFile(std::string_view path) const
     const RpfEntryView& entry = *found.GetValue();
     if (!RpfIsStored(entry))
     {
-        return Inflate(path, entry);
+        Result<std::vector<std::byte>> inflated = Inflate(path, entry);
+        if (inflated && inflated.GetValue().size() > maxBytes)
+        {
+            inflated.GetValue().resize(maxBytes);
+        }
+        return inflated;
     }
     Result<std::span<const char>> located = Locate(path, entry);
     if (!located)
     {
         return located.GetError();
     }
-    const std::span<const char> bytes = located.GetValue();
+    const std::span<const char> bytes =
+        located.GetValue().first(std::min<std::size_t>(located.GetValue().size(), maxBytes));
     std::vector<std::byte> contents(bytes.size());
     std::memcpy(contents.data(), bytes.data(), bytes.size());
     if (RpfIsLargeResource(entry))
@@ -423,9 +436,49 @@ Result<std::vector<std::byte>> RpfReader::ReadFile(std::string_view path) const
         // The size header takes the RSC7 header's place; the entry still has its flags.
         const std::array<char, RpfLayout::kHeaderSizeBytes> header =
             MakeRscHeader(entry.virtFlags, entry.physFlags);
-        std::memcpy(contents.data(), header.data(), header.size());
+        std::memcpy(contents.data(), header.data(), std::min(header.size(), contents.size()));
     }
     return contents;
+}
+
+Result<RpfReader::FileInfo> RpfReader::Stat(std::string_view path) const
+{
+    Result<const RpfEntryView*> found = FindFile(path);
+    if (!found)
+    {
+        return found.GetError();
+    }
+    const RpfEntryView& entry = *found.GetValue();
+    FileInfo info{.sizeBytes = RpfIsStored(entry) ? RpfStoredSize(entry) : entry.virtFlags,
+                  .isStored = RpfIsStored(entry),
+                  .isLargeResource = RpfIsLargeResource(entry),
+                  .virtualFlags = entry.virtFlags,
+                  .physicalFlags = entry.physFlags};
+    if (info.isLargeResource)
+    {
+        Result<std::span<const char>> located = Locate(path, entry);
+        if (!located)
+        {
+            return located.GetError();
+        }
+        info.sizeBytes = located.GetValue().size();
+    }
+    return info;
+}
+
+Result<std::span<const char>> RpfReader::GetStoredBytes(std::string_view path) const
+{
+    Result<const RpfEntryView*> found = FindFile(path);
+    if (!found)
+    {
+        return found.GetError();
+    }
+    if (!RpfIsStored(*found.GetValue()))
+    {
+        return MakeError(ErrorCode::NotSupported, "'{}' in '{}' is compressed", path,
+                         m_path.string());
+    }
+    return Locate(path, *found.GetValue());
 }
 
 Result<std::vector<std::byte>> RpfReader::Inflate(std::string_view path,

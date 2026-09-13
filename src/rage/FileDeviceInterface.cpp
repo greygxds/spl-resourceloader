@@ -4,9 +4,9 @@
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <optional>
 #include <string>
-#include <system_error>
 #include <vector>
 
 #include <spdlog/fmt/fmt.h>
@@ -39,9 +39,7 @@ constexpr std::array<std::string_view, 2> kWellKnownMounts = {"platform:/", "com
 /// bytes.
 constexpr std::size_t kRelativeDeviceBytes = 0x200;
 alignas(16) std::byte g_resourcesDeviceStorage[kRelativeDeviceBytes];
-alignas(16) std::byte g_modsDeviceStorage[kRelativeDeviceBytes];
 bool g_resourcesDeviceConstructed = false;
-bool g_modsDeviceConstructed = false;
 
 /// FiveM's constructor writes the vtable and then m_pad[256] = '\0'
 /// (rage-device-five/src/fiDeviceClasses.cpp:13-18).
@@ -235,41 +233,42 @@ Result<void*> FileDeviceInterface::CreateRelativeDevice(void* storage, std::size
 
 Result<void> FileDeviceInterface::MountResourcesRoot(const std::filesystem::path& root)
 {
-    return MountRoot(root, kResourcesMountPoint, g_resourcesDeviceStorage, kRelativeDeviceBytes,
-                     g_resourcesDeviceConstructed, m_mountedDevice, m_resourcesRoot);
-}
-
-Result<void> FileDeviceInterface::MountModsRoot(const std::filesystem::path& root)
-{
-    std::error_code error;
-    if (!std::filesystem::is_directory(root, error))
-    {
-        return {}; // no mods were adopted: nothing to mount, nothing to report
-    }
-    return MountRoot(root, kModsMountPoint, g_modsDeviceStorage, kRelativeDeviceBytes,
-                     g_modsDeviceConstructed, m_modsDevice, m_modsRoot);
-}
-
-Result<bool> FileDeviceInterface::MountOverlay(const std::filesystem::path& folder,
-                                               std::string_view mountPoint,
-                                               std::string_view probeFile)
-{
     if (m_relativeVftable == 0 || HasFaulted())
     {
         return MakeError(ErrorCode::Unavailable, "the device layer is unusable");
     }
 
-    auto& storage = m_overlayDevices.emplace_back(std::make_unique<std::array<std::byte, 0x200>>());
-    bool constructed = false;
-    const std::string deviceRoot = MakeDeviceRoot(folder);
-    Result<void*> device =
-        CreateRelativeDevice(storage->data(), storage->size(), constructed, deviceRoot);
+    if (m_mountedDevice != nullptr)
+    {
+        if (m_resourcesRoot == root)
+        {
+            return {}; // a second Initialize() after a session reload
+        }
+        return MakeError(ErrorCode::NotSupported,
+                         "'{}' is already mounted at '{}' and RAGE mounts live for the whole "
+                         "process, so '{}' cannot replace it",
+                         util::ToUtf8(m_resourcesRoot), kResourcesMountPoint, util::ToUtf8(root));
+    }
+
+    const std::string deviceRoot = MakeDeviceRoot(root);
+    if (!IsPrintableAscii(deviceRoot))
+    {
+        // VERIFY on a real build: RAGE devices take UTF-8, but nothing proves its path
+        // normalization survives non-ASCII.
+        SPL_LOG_WARNING(Rage,
+                        "The '{}' folder '{}' is not plain ASCII; RAGE path handling for "
+                        "it is unverified",
+                        kResourcesMountPoint, deviceRoot);
+    }
+
+    Result<void*> device = CreateRelativeDevice(g_resourcesDeviceStorage, kRelativeDeviceBytes,
+                                                g_resourcesDeviceConstructed, deviceRoot);
     if (!device)
     {
         return device.GetError();
     }
 
-    const std::string mountName{mountPoint};
+    const std::string mountName{kResourcesMountPoint};
     const bool mounted = SafeCall("fiDeviceRelative::Mount",
                                   [&]
                                   {
@@ -281,8 +280,95 @@ Result<bool> FileDeviceInterface::MountOverlay(const std::filesystem::path& fold
         return MakeError(ErrorCode::Unavailable, "fiDeviceRelative::Mount faulted");
     }
 
-    m_overlays.push_back(PutLooseResourceDeviceInFront(device.GetValue(), mountName));
-    return IsServedByOverlay(mountName + std::string{probeFile});
+    const void* const front = PutLooseResourceDeviceInFront(device.GetValue(), mountName);
+
+    // The mount only counts once the device stack hands the same object back.
+    if (void* const resolved = GetDevice(mountName, true); resolved != front)
+    {
+        return MakeError(ErrorCode::Unavailable,
+                         "'{}' resolves to {} instead of the device we mounted", mountName,
+                         fmt::ptr(resolved));
+    }
+
+    m_mountedDevice = const_cast<void*>(front);
+    m_resourcesRoot = root;
+    SPL_LOG_DEBUG(Rage, "Mounted '{}' at '{}'", deviceRoot, mountName);
+
+    // Reading the root back through the mount proves the device resolves paths, not just that
+    // it is in the table. It is a diagnostic rather than a failure, because no real build has
+    // confirmed that GetFileAttributes answers for a directory.
+    if (!GetFileAttributes(m_mountedDevice, mountName))
+    {
+        SPL_LOG_WARNING(Rage,
+                        "'{}' is mounted but the device reports no attributes for it; files "
+                        "under it may not open",
+                        mountName);
+    }
+    return {};
+}
+
+Result<void> FileDeviceInterface::MountModsRoot(const std::filesystem::path& root,
+                                                const IDeviceFileSource& mods)
+{
+    if (m_modsDevice != nullptr)
+    {
+        if (m_modsRoot == root)
+        {
+            return {}; // a second Initialize() after a session reload
+        }
+        return MakeError(ErrorCode::NotSupported,
+                         "the mods are already mounted at '{}' for '{}', and RAGE mounts live "
+                         "for the whole process",
+                         kModsMountPoint, util::ToUtf8(m_modsRoot));
+    }
+
+    ModArchiveDevice& device =
+        *m_modDevices.emplace_back(std::make_unique<ModArchiveDevice>(mods, ""));
+    if (Result<void> mounted =
+            MountAndVerify(kModsMountPoint, device.GetGameDevice(), util::ToUtf8Generic(root));
+        !mounted)
+    {
+        return mounted.GetError();
+    }
+    m_modsDevice = device.GetGameDevice();
+    m_modsRoot = root;
+    return {};
+}
+
+Result<bool> FileDeviceInterface::MountOverlay(const IDeviceFileSource& mods, std::string folder,
+                                               std::string_view mountPoint,
+                                               std::string_view probeFile)
+{
+    if (m_mountGlobal == 0 || HasFaulted())
+    {
+        return MakeError(ErrorCode::Unavailable,
+                         "signature 'rage::fiDevice::MountGlobal' did not resolve");
+    }
+    ModArchiveDevice& device =
+        *m_modDevices.emplace_back(std::make_unique<ModArchiveDevice>(mods, std::move(folder)));
+    if (!MountGlobal(mountPoint, device.GetGameDevice(), true))
+    {
+        return MakeError(ErrorCode::Unavailable, "the game refused the device");
+    }
+    m_overlays.push_back(device.GetGameDevice());
+    return IsServedByOverlay(std::string{mountPoint} + std::string{probeFile});
+}
+
+std::vector<std::size_t> FileDeviceInterface::GetUnexpectedModDeviceSlots() const
+{
+    std::vector<std::size_t> slots;
+    for (const std::unique_ptr<ModArchiveDevice>& device : m_modDevices)
+    {
+        for (const std::size_t slot : device->GetUnexpectedSlots())
+        {
+            if (std::ranges::find(slots, slot) == slots.end())
+            {
+                slots.push_back(slot);
+            }
+        }
+    }
+    std::ranges::sort(slots);
+    return slots;
 }
 
 void* FileDeviceInterface::PutLooseResourceDeviceInFront(void* relativeDevice,
@@ -315,103 +401,45 @@ bool FileDeviceInterface::IsServedByOverlay(std::string_view path) const
     return device != nullptr && std::ranges::find(m_overlays, device) != m_overlays.end();
 }
 
-Result<void> FileDeviceInterface::MountRoot(const std::filesystem::path& root,
-                                            std::string_view mountPoint, void* storage,
-                                            std::size_t storageBytes, bool& constructed,
-                                            void*& deviceSlot, std::filesystem::path& rootSlot)
+Result<void> FileDeviceInterface::MountAndVerify(std::string_view mountPoint, void* device,
+                                                 std::string_view rootForLog)
 {
-    if (m_relativeVftable == 0 || HasFaulted())
-    {
-        return MakeError(ErrorCode::Unavailable, "the device layer is unusable");
-    }
-
-    if (deviceSlot != nullptr)
-    {
-        if (rootSlot == root)
-        {
-            return {}; // a second Initialize() after a session reload
-        }
-        return MakeError(ErrorCode::NotSupported,
-                         "'{}' is already mounted at '{}' and RAGE mounts live for the whole "
-                         "process, so '{}' cannot replace it",
-                         util::ToUtf8(rootSlot), mountPoint, util::ToUtf8(root));
-    }
-
-    const std::string deviceRoot = MakeDeviceRoot(root);
-    if (!IsPrintableAscii(deviceRoot))
-    {
-        // VERIFY on a real build: RAGE devices take UTF-8, but nothing proves its path
-        // normalization survives non-ASCII.
-        SPL_LOG_WARNING(Rage,
-                        "The '{}' folder '{}' is not plain ASCII; RAGE path handling for "
-                        "it is unverified",
-                        mountPoint, deviceRoot);
-    }
-
-    Result<void*> device = CreateRelativeDevice(storage, storageBytes, constructed, deviceRoot);
-    if (!device)
-    {
-        return device.GetError();
-    }
-
-    const std::string mountName{mountPoint};
-    const bool mounted = SafeCall("fiDeviceRelative::Mount",
-                                  [&]
-                                  {
-                                      const auto mount = reinterpret_cast<MountFn>(m_relativeMount);
-                                      mount(device.GetValue(), mountName.c_str(), true);
-                                  });
-    if (!mounted)
-    {
-        return MakeError(ErrorCode::Unavailable, "fiDeviceRelative::Mount faulted");
-    }
-
-    const void* const front = PutLooseResourceDeviceInFront(device.GetValue(), mountName);
-
-    // The mount only counts once the device stack hands the same object back.
-    if (void* const resolved = GetDevice(mountName, true); resolved != front)
+    if (m_mountGlobal == 0 || HasFaulted())
     {
         return MakeError(ErrorCode::Unavailable,
-                         "'{}' resolves to {} instead of the device we mounted", mountName,
+                         "signature 'rage::fiDevice::MountGlobal' did not resolve");
+    }
+    if (!MountGlobal(mountPoint, device, true))
+    {
+        return MakeError(ErrorCode::Unavailable, "the game refused the device for '{}'",
+                         mountPoint);
+    }
+    // The mount only counts once the device stack hands the same object back.
+    if (void* const resolved = GetDevice(mountPoint, true); resolved != device)
+    {
+        return MakeError(ErrorCode::Unavailable,
+                         "'{}' resolves to {} instead of the device we mounted", mountPoint,
                          fmt::ptr(resolved));
     }
-
-    deviceSlot = const_cast<void*>(front);
-    rootSlot = root;
-    SPL_LOG_DEBUG(Rage, "Mounted '{}' at '{}'", deviceRoot, mountName);
-
-    // Reading the root back through the mount proves the device resolves paths, not just that
-    // it is in the table. It is a diagnostic rather than a failure, because no real build has
-    // confirmed that GetFileAttributes answers for a directory.
-    if (!GetFileAttributes(deviceSlot, mountName))
-    {
-        SPL_LOG_WARNING(Rage,
-                        "'{}' is mounted but the device reports no attributes for it; files "
-                        "under it may not open",
-                        mountName);
-    }
+    SPL_LOG_DEBUG(Rage, "Mounted '{}' at '{}'", rootForLog, mountPoint);
     return {};
 }
 
 std::optional<std::string>
 FileDeviceInterface::ToVfsPath(const std::filesystem::path& absoluteFile) const
 {
-    if (m_mountedDevice != nullptr)
+    const std::optional<std::string> resourcesPath =
+        m_mountedDevice != nullptr ? MakeVfsPath(m_resourcesRoot, absoluteFile) : std::nullopt;
+    const std::optional<std::string> modsPath =
+        m_modsDevice != nullptr ? MakeVfsPath(m_modsRoot, kModsMountPoint, absoluteFile)
+                                : std::nullopt;
+    // When one root is inside the other, the file belongs to the deeper one.
+    if (resourcesPath && modsPath)
     {
-        if (std::optional<std::string> path = MakeVfsPath(m_resourcesRoot, absoluteFile))
-        {
-            return path;
-        }
+        const bool modsIsDeeper = m_modsRoot.native().size() > m_resourcesRoot.native().size();
+        return modsIsDeeper ? modsPath : resourcesPath;
     }
-    if (m_modsDevice != nullptr)
-    {
-        if (std::optional<std::string> path =
-                MakeVfsPath(m_modsRoot, kModsMountPoint, absoluteFile))
-        {
-            return path;
-        }
-    }
-    return std::nullopt;
+    return resourcesPath ? resourcesPath : modsPath;
 }
 
 Result<void> FileDeviceInterface::Verify(const memory::Module& image) const
@@ -423,8 +451,12 @@ Result<void> FileDeviceInterface::Verify(const memory::Module& image) const
         {
             return MakeError(ErrorCode::NotFound, "no device is mounted at '{}'", mount);
         }
-        // Once a mod overlay is mounted, the device in front is our own LooseResourceDevice,
-        // whose vtable lives in this DLL; the game's fiDeviceRelative it fronts is what counts.
+        // Once a mod overlay is mounted, the device in front is our own, whose vtable lives in this
+        // DLL and which fronts no game device.
+        if (std::ranges::find(m_overlays, device) != m_overlays.end())
+        {
+            continue;
+        }
         if (const auto own = std::ranges::find(m_looseResourceDevices, device,
                                                [](const std::unique_ptr<LooseResourceDevice>& d)
                                                { return d->GetGameDevice(); });

@@ -1,14 +1,12 @@
-#include "mods/ModExtractor.h"
+#include "mods/ModLayout.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -16,13 +14,14 @@
 #include <system_error>
 #include <tuple>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <spdlog/fmt/fmt.h>
 
 #include "core/Result.h"
-#include "core/Version.h"
 #include "mods/AssemblyParser.h"
+#include "mods/ModFileTree.h"
 #include "mods/ModOverlay.h"
 #include "mods/ModsScanner.h"
 #include "rpf/RpfReader.h"
@@ -101,157 +100,22 @@ constexpr std::array kOverlayFolders = {
 }
 
 /// Records a folder's mounts the first time a file lands in it; that file is the probe.
-void AddOverlayRoot(ModExtractor::Result& result, const OverlayFolder& folder,
-                    std::string_view target)
+void AddOverlayRoot(ModLayout::Result& result, const OverlayFolder& folder, std::string_view target)
 {
     const std::filesystem::path path =
         result.root / folder.prefix.substr(0, folder.prefix.size() - 1);
-    if (std::ranges::any_of(result.overlays, [&path](const ModExtractor::OverlayRoot& root)
+    if (std::ranges::any_of(result.overlays, [&path](const ModLayout::OverlayRoot& root)
                             { return root.folder == path; }))
     {
         return;
     }
     for (const std::string_view mountPoint : folder.mountPoints)
     {
-        result.overlays.push_back(ModExtractor::OverlayRoot{
-            .folder = path,
-            .mountPoint = std::string{mountPoint},
-            .probeFile = std::string{target.substr(folder.prefix.size())}});
+        result.overlays.push_back(
+            ModLayout::OverlayRoot{.folder = path,
+                                   .mountPoint = std::string{mountPoint},
+                                   .probeFile = std::string{target.substr(folder.prefix.size())}});
     }
-}
-
-/// Bumped whenever what an extraction writes changes, so an old cache is extracted again.
-constexpr int kCacheFormat = 3;
-
-constexpr std::string_view kStampFileName = ".spl_extracted";
-
-/// What an extraction depends on: the archive as it is on disk, the loader, and the game build
-/// that gates content DLCs.
-[[nodiscard]] std::string MakeStamp(const DiscoveredMod& mod, uint32_t gameBuild)
-{
-    std::error_code error;
-    const std::uintmax_t size = std::filesystem::file_size(mod.absolutePath, error);
-    const auto written = std::filesystem::last_write_time(mod.absolutePath, error);
-    return fmt::format("format {}\nloader {}\nsource {} {}\nbuild {}\n", kCacheFormat,
-                       Version::Describe(), size, written.time_since_epoch().count(), gameBuild);
-}
-
-/// The result an earlier extraction recorded next to its files, when stamp still describes it.
-[[nodiscard]] std::optional<ModExtractor::Result>
-ReadCachedResult(const std::filesystem::path& root, const std::string& stamp)
-{
-    std::ifstream stream{root / kStampFileName, std::ios::binary};
-    if (!stream)
-    {
-        return std::nullopt;
-    }
-    const std::string text{std::istreambuf_iterator<char>{stream},
-                           std::istreambuf_iterator<char>{}};
-    if (!text.starts_with(stamp))
-    {
-        return std::nullopt;
-    }
-
-    ModExtractor::Result result{.root = root, .reused = true};
-    std::string_view rest = std::string_view{text}.substr(stamp.size());
-    while (!rest.empty())
-    {
-        const std::size_t end = rest.find('\n');
-        const std::string_view line = rest.substr(0, end);
-        rest = end == std::string_view::npos ? std::string_view{} : rest.substr(end + 1);
-        const std::size_t space = line.find(' ');
-        const std::string_view key = line.substr(0, space);
-        const std::string_view value =
-            space == std::string_view::npos ? std::string_view{} : line.substr(space + 1);
-        if (key == "files")
-        {
-            result.extractedFiles =
-                static_cast<uint32_t>(std::strtoul(std::string{value}.c_str(), nullptr, 10));
-        }
-        else if (key == "overlay")
-        {
-            const std::size_t tab = value.find('\t');
-            const std::string mountPoint{value.substr(0, tab)};
-            const std::optional<OverlayFolder> folder = FindOverlayFolder(
-                std::string{mountPoint.starts_with("common") ? "common/" : "platform/"} + "x");
-            if (tab == std::string_view::npos || !folder)
-            {
-                return std::nullopt;
-            }
-            result.overlays.push_back(ModExtractor::OverlayRoot{
-                .folder = root / folder->prefix.substr(0, folder->prefix.size() - 1),
-                .mountPoint = mountPoint,
-                .probeFile = std::string{value.substr(tab + 1)}});
-        }
-        else if (key == "warning")
-        {
-            result.warnings.emplace_back(value);
-        }
-        else if (key == "dlc-provided" || key == "dlc-unresolved")
-        {
-            // device \t path [\t warning]
-            const std::size_t first = value.find('\t');
-            if (first == std::string_view::npos)
-            {
-                return std::nullopt;
-            }
-            const std::size_t second = value.find('\t', first + 1);
-            ModExtractor::DlcFile file{
-                .device = std::string{value.substr(0, first)},
-                .path = std::string{value.substr(first + 1, second == std::string_view::npos
-                                                                ? std::string_view::npos
-                                                                : second - first - 1)}};
-            if (key == "dlc-provided")
-            {
-                result.providedDlcFiles.push_back(std::move(file));
-                continue;
-            }
-            if (second == std::string_view::npos)
-            {
-                return std::nullopt;
-            }
-            file.warning = std::string{value.substr(second + 1)};
-            result.unresolvedDlcFiles.push_back(std::move(file));
-        }
-    }
-    return result;
-}
-
-/// One cache line's worth of text: the line and field separators cannot appear inside.
-[[nodiscard]] std::string SingleField(std::string_view text)
-{
-    std::string single{text};
-    std::ranges::replace(single, '\n', ' ');
-    std::ranges::replace(single, '\t', ' ');
-    return single;
-}
-
-/// Records result next to the files it describes. A failure only costs the next launch a re-run.
-void WriteCachedResult(const ModExtractor::Result& result, const std::string& stamp)
-{
-    std::string text = stamp + fmt::format("files {}\n", result.extractedFiles);
-    for (const ModExtractor::OverlayRoot& overlay : result.overlays)
-    {
-        text += fmt::format("overlay {}\t{}\n", overlay.mountPoint, overlay.probeFile);
-    }
-    for (const std::string& warning : result.warnings)
-    {
-        std::string single = warning;
-        std::ranges::replace(single, '\n', ' ');
-        text += "warning " + single + '\n';
-    }
-    for (const ModExtractor::DlcFile& file : result.providedDlcFiles)
-    {
-        text +=
-            fmt::format("dlc-provided {}\t{}\n", SingleField(file.device), SingleField(file.path));
-    }
-    for (const ModExtractor::DlcFile& file : result.unresolvedDlcFiles)
-    {
-        text += fmt::format("dlc-unresolved {}\t{}\t{}\n", SingleField(file.device),
-                            SingleField(file.path), SingleField(file.warning));
-    }
-    std::ofstream stream{result.root / kStampFileName, std::ios::binary | std::ios::trunc};
-    stream << text;
 }
 
 [[nodiscard]] std::string BaseName(std::string_view path)
@@ -271,7 +135,7 @@ void WriteCachedResult(const ModExtractor::Result& result, const std::string& st
     return "content/" + relative;
 }
 
-/// Cache folder names come from archive stems, which are user input.
+/// Mod folder names come from archive stems, which are user input, and end up in VFS paths.
 [[nodiscard]] std::string SanitizeName(std::string_view name)
 {
     std::string out{name};
@@ -351,14 +215,17 @@ void WriteCachedResult(const ModExtractor::Result& result, const std::string& st
     return parseNumber(requiredVersion.substr(dash + 1), maximum) && gameBuild <= maximum;
 }
 
-struct Extraction
+/// Collects a mod's files as references into its archives, keeping every reader they point into.
+struct LayoutBuilder
 {
-    ModExtractor::Result& result;
+    ModLayout::Result& result;
     std::string archiveName;
+    std::vector<std::unique_ptr<rpf::RpfReader>> archives;
+    std::vector<ModFile> files;
     std::unordered_set<std::string> streamNames;
     std::size_t packCount = 0;
 
-    /// Reads an archive-relative file (nested RPF bytes, setup2.xml, ...) as text.
+    /// Reads an archive-relative file (setup2.xml, content.xml, ...) as text.
     static std::optional<std::string> ReadText(const rpf::RpfReader& archive, std::string_view path)
     {
         const spl::Result<std::vector<std::byte>> bytes = archive.ReadFile(path);
@@ -370,40 +237,32 @@ struct Extraction
         return std::string{reinterpret_cast<const char*>(value.data()), value.size()};
     }
 
-    bool WriteFile(const std::filesystem::path& file, const std::vector<std::byte>& bytes,
-                   std::string_view what)
+    /// Moves reader where files can point into it for as long as the layout lives.
+    const rpf::RpfReader& Keep(rpf::RpfReader reader)
     {
-        std::error_code error;
-        std::filesystem::create_directories(file.parent_path(), error);
-        if (error)
+        return *archives.emplace_back(std::make_unique<rpf::RpfReader>(std::move(reader)));
+    }
+
+    /// Lays out the file at entryPath in archive as path. False, with a warning, when the
+    /// archive cannot serve it.
+    bool AddFile(std::string path, const rpf::RpfReader& archive, std::string_view entryPath)
+    {
+        if (const spl::Result<rpf::RpfReader::FileInfo> stat = archive.Stat(entryPath); !stat)
         {
-            result.warnings.push_back("'" + archiveName + "': cannot create '" + file.string() +
-                                      "' (" + error.message() + ")");
+            result.warnings.push_back("'" + archiveName + "': cannot read '" +
+                                      std::string{entryPath} + "' (" + stat.GetMessage() + ")");
             return false;
         }
-        std::ofstream stream{file, std::ios::binary | std::ios::trunc};
-        if (!stream)
-        {
-            result.warnings.push_back("'" + archiveName + "': cannot write '" + file.string() +
-                                      "' (" + std::string{what} + ")");
-            return false;
-        }
-        stream.write(reinterpret_cast<const char*>(bytes.data()),
-                     static_cast<std::streamsize>(bytes.size()));
-        if (!stream.good())
-        {
-            result.warnings.push_back("'" + archiveName + "': failed writing '" + file.string() +
-                                      "'");
-            return false;
-        }
-        ++result.extractedFiles;
+        files.push_back(
+            ModFile{.path = std::move(path),
+                    .source = ArchiveEntry{.archive = &archive, .path = std::string{entryPath}}});
         return true;
     }
 
     /// The top-level files of a nested archive, which FiveM registers under the archive's own tag
     /// (ModVFSDevice.cpp:286-352). A name an earlier pack of the mod already provided is left to
     /// that pack, except a .ymf: every pack has its own _manifest.ymf, so each gets a folder.
-    void ExtractPack(const rpf::RpfReader& pack)
+    void AddPack(const rpf::RpfReader& pack)
     {
         ++packCount;
         for (const rpf::RpfReader::EntryInfo& node : pack.Enumerate())
@@ -418,25 +277,16 @@ struct Extraction
             {
                 continue;
             }
-            spl::Result<std::vector<std::byte>> bytes = pack.ReadFile(node.path);
-            if (!bytes)
-            {
-                result.warnings.push_back("'" + archiveName + "': cannot read '" + node.path +
-                                          "' in '" + pack.GetPath().filename().string() + "' (" +
-                                          bytes.GetMessage() + ")");
-                continue;
-            }
-            const std::filesystem::path folder =
-                manifest ? result.root / "stream" / fmt::format("pack{}", packCount)
-                         : result.root / "stream";
-            WriteFile(folder / node.path, bytes.GetValue(), node.path);
+            const std::string folder =
+                manifest ? fmt::format("stream/pack{}/", packCount) : std::string{"stream/"};
+            AddFile(folder + node.path, pack, node.path);
         }
     }
 
     /// stream/<basename>, first source wins so two targets never overwrite each other.
     /// source is archive-relative already (callers prepend content/ for assembly sources).
-    void ExtractStreamed(const rpf::RpfReader& archive, std::string_view source,
-                         std::string_view target)
+    void AddStreamed(const rpf::RpfReader& archive, std::string_view source,
+                     std::string_view target)
     {
         const std::string name = BaseName(target);
         if (!streamNames.insert(name).second)
@@ -445,31 +295,23 @@ struct Extraction
                                       "' skipped, '" + name + "' is already provided");
             return;
         }
-        spl::Result<std::vector<std::byte>> bytes = archive.ReadFile(source);
-        if (!bytes)
-        {
-            result.warnings.push_back("'" + archiveName + "': cannot read '" + std::string{source} +
-                                      "' (" + bytes.GetMessage() + ")");
-            return;
-        }
-        WriteFile(result.root / "stream" / name, bytes.GetValue(), source);
+        AddFile("stream/" + name, archive, source);
     }
 };
 
-/// Opens a nested archive, warning on behalf of mod when it fails.
-[[nodiscard]] std::optional<rpf::RpfReader> OpenNested(ModExtractor::Result& result,
-                                                       std::string_view modName,
-                                                       const rpf::RpfReader& archive,
-                                                       std::string_view source)
+/// Opens a nested archive and keeps it, warning on behalf of mod when it fails.
+[[nodiscard]] const rpf::RpfReader* OpenNested(LayoutBuilder& builder, std::string_view modName,
+                                               const rpf::RpfReader& archive,
+                                               std::string_view source)
 {
     spl::Result<rpf::RpfReader> pack = archive.OpenNested(source);
     if (!pack)
     {
-        result.warnings.push_back("'" + std::string{modName} + "': cannot open nested '" +
-                                  std::string{source} + "' (" + pack.GetMessage() + ")");
-        return std::nullopt;
+        builder.result.warnings.push_back("'" + std::string{modName} + "': cannot open nested '" +
+                                          std::string{source} + "' (" + pack.GetMessage() + ")");
+        return nullptr;
     }
-    return std::move(pack.GetValue());
+    return &builder.Keep(std::move(pack.GetValue()));
 }
 
 /// Strips a "<device>:/" prefix off a content.xml filename, so "dlc_X:/x64/a.rpf" with
@@ -499,56 +341,56 @@ constexpr std::string_view kItypRequestType = "DLC_ITYP_REQUEST";
                                { return util::EqualsIgnoreCase(streamed, name); });
 }
 
-void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const ModOverlay& overlay,
-                 uint32_t gameBuild, Extraction& extraction, std::string& manifest)
+void AddDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const ModOverlay& overlay,
+             uint32_t gameBuild, LayoutBuilder& builder, std::string& manifest)
 {
     struct PendingDlc
     {
         DlcDescriptor descriptor;
         std::string device; ///< lower-case deviceName
         std::string source; ///< lower-case, so dlc.rpf sorts before dlc1.rpf
-        rpf::RpfReader pack;
+        const rpf::RpfReader* pack = nullptr;
     };
     std::vector<PendingDlc> pending;
     for (const ModOverlay::DlcJob& job : overlay.DlcJobs())
     {
-        std::optional<rpf::RpfReader> pack =
-            OpenNested(extraction.result, mod.name, archive, ResolveSource(job.source));
-        if (!pack)
+        const rpf::RpfReader* const pack =
+            OpenNested(builder, mod.name, archive, ResolveSource(job.source));
+        if (pack == nullptr)
         {
             continue;
         }
-        const std::optional<std::string> setup = Extraction::ReadText(*pack, "setup2.xml");
+        const std::optional<std::string> setup = LayoutBuilder::ReadText(*pack, "setup2.xml");
         if (!setup)
         {
-            extraction.result.warnings.push_back("'" + mod.name + "': '" + job.source +
-                                                 "' has no setup2.xml, skipped");
+            builder.result.warnings.push_back("'" + mod.name + "': '" + job.source +
+                                              "' has no setup2.xml, skipped");
             continue;
         }
         const Setup2Result parsed = AssemblyParser::ParseSetup2(*setup);
         if (parsed.fatal)
         {
-            extraction.result.warnings.push_back("'" + mod.name + "': '" + job.source +
-                                                 "' has a broken setup2.xml, skipped");
+            builder.result.warnings.push_back("'" + mod.name + "': '" + job.source +
+                                              "' has a broken setup2.xml, skipped");
             continue;
         }
         if (parsed.descriptor.deviceName.empty())
         {
-            extraction.result.warnings.push_back("'" + mod.name + "': '" + job.source +
-                                                 "' names no device, skipped");
+            builder.result.warnings.push_back("'" + mod.name + "': '" + job.source +
+                                              "' names no device, skipped");
             continue;
         }
         if (!VersionAllows(parsed.descriptor.requiredVersion, gameBuild))
         {
-            extraction.result.warnings.push_back("'" + mod.name + "': '" + job.source +
-                                                 "' needs game build " +
-                                                 parsed.descriptor.requiredVersion + ", skipped");
+            builder.result.warnings.push_back("'" + mod.name + "': '" + job.source +
+                                              "' needs game build " +
+                                              parsed.descriptor.requiredVersion + ", skipped");
             continue;
         }
         pending.push_back(PendingDlc{.descriptor = parsed.descriptor,
                                      .device = util::ToLower(parsed.descriptor.deviceName),
                                      .source = util::ToLower(job.source),
-                                     .pack = std::move(*pack)});
+                                     .pack = pack});
     }
     std::ranges::stable_sort(pending,
                              [](const PendingDlc& left, const PendingDlc& right)
@@ -566,20 +408,19 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
     std::vector<PendingItem> items;
     for (const PendingDlc& dlc : pending)
     {
-        const std::optional<std::string> content = Extraction::ReadText(dlc.pack, "content.xml");
+        const std::optional<std::string> content =
+            LayoutBuilder::ReadText(*dlc.pack, "content.xml");
         if (!content)
         {
-            extraction.result.warnings.push_back("'" + mod.name + "': '" +
-                                                 dlc.descriptor.deviceName +
-                                                 "' has no content.xml, skipped");
+            builder.result.warnings.push_back("'" + mod.name + "': '" + dlc.descriptor.deviceName +
+                                              "' has no content.xml, skipped");
             continue;
         }
         const ContentResult parsed = AssemblyParser::ParseContent(*content);
         if (parsed.fatal)
         {
-            extraction.result.warnings.push_back("'" + mod.name + "': '" +
-                                                 dlc.descriptor.deviceName +
-                                                 "' has a broken content.xml, skipped");
+            builder.result.warnings.push_back("'" + mod.name + "': '" + dlc.descriptor.deviceName +
+                                              "' has a broken content.xml, skipped");
             continue;
         }
         for (const ContentItem& item : parsed.items)
@@ -593,8 +434,8 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
             std::string relative = ResolveDlcPath(dlc.descriptor.deviceName, filename);
             if (relative.empty())
             {
-                extraction.result.warnings.push_back("'" + mod.name + "': '" + item.filename +
-                                                     "' names no file, skipped");
+                builder.result.warnings.push_back("'" + mod.name + "': '" + item.filename +
+                                                  "' names no file, skipped");
                 continue;
             }
             items.push_back(
@@ -609,9 +450,9 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
     {
         for (const PendingDlc& candidate : pending)
         {
-            if (candidate.device == device && candidate.pack.Contains(relative))
+            if (candidate.device == device && candidate.pack->Contains(relative))
             {
-                return &candidate.pack;
+                return candidate.pack;
             }
         }
         return nullptr;
@@ -619,15 +460,15 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
     std::unordered_set<std::string> handled; ///< "<device>:/<lower-case path>"
     const auto firstTime = [&handled](const PendingItem& entry)
     { return handled.insert(entry.dlc->device + ":/" + util::ToLower(entry.relative)).second; };
-    const auto provide = [&extraction](const PendingItem& entry)
+    const auto provide = [&builder](const PendingItem& entry)
     {
-        extraction.result.providedDlcFiles.push_back(ModExtractor::DlcFile{
-            .device = entry.dlc->device, .path = util::ToLower(entry.relative)});
+        builder.result.providedDlcFiles.push_back(
+            ModLayout::DlcFile{.device = entry.dlc->device, .path = util::ToLower(entry.relative)});
     };
-    const auto leaveUnresolved = [&extraction, &mod](const PendingItem& entry)
+    const auto leaveUnresolved = [&builder, &mod](const PendingItem& entry)
     {
         // Reported only when no other mod provides it either (ReportUnresolvedDlcFiles).
-        extraction.result.unresolvedDlcFiles.push_back(ModExtractor::DlcFile{
+        builder.result.unresolvedDlcFiles.push_back(ModLayout::DlcFile{
             .device = entry.dlc->device,
             .path = util::ToLower(entry.relative),
             .warning = "'" + mod.name + "': '" + entry.item.filename + "' ('" + entry.relative +
@@ -649,10 +490,10 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
             continue;
         }
         provide(entry);
-        if (const std::optional<rpf::RpfReader> pack =
-                OpenNested(extraction.result, mod.name, *owner, entry.relative))
+        if (const rpf::RpfReader* const pack =
+                OpenNested(builder, mod.name, *owner, entry.relative))
         {
-            extraction.ExtractPack(*pack);
+            builder.AddPack(*pack);
         }
     }
 
@@ -669,26 +510,22 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
             {
                 name.replace(name.size() - 5, 5, ".ytyp");
             }
-            if (!IsStreamed(extraction.streamNames, name))
+            if (!IsStreamed(builder.streamNames, name))
             {
                 // A loose .ytyp in the pack itself streams like any other.
                 std::string loose = entry.relative;
                 loose.replace(loose.size() - name.size(), name.size(), name);
-                if (const rpf::RpfReader* const owner = findPack(entry.dlc->device, loose))
+                if (const rpf::RpfReader* const owner = findPack(entry.dlc->device, loose);
+                    owner != nullptr && builder.AddFile("stream/" + name, *owner, loose))
                 {
-                    const spl::Result<std::vector<std::byte>> bytes = owner->ReadFile(loose);
-                    if (bytes && extraction.WriteFile(extraction.result.root / "stream" / name,
-                                                      bytes.GetValue(), entry.item.filename))
-                    {
-                        extraction.streamNames.insert(name);
-                    }
+                    builder.streamNames.insert(name);
                 }
             }
             provide(entry);
             // Requested even when no pack has it: it may name a .ytyp of the game, of another
             // DLC or of another mod, which the streaming plan checks and reports.
             const std::string target =
-                IsStreamed(extraction.streamNames, name) ? "stream/" + name : name;
+                IsStreamed(builder.streamNames, name) ? "stream/" + name : name;
             manifest +=
                 "data_file '" + std::string{kItypRequestType} + "' '" + EscapeLua(target) + "'\n";
             continue;
@@ -700,106 +537,69 @@ void ExtractDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const 
             leaveUnresolved(entry);
             continue;
         }
-        const spl::Result<std::vector<std::byte>> bytes = owner->ReadFile(entry.relative);
-        if (!bytes)
+        const std::string target =
+            "__dlc__/" + entry.dlc->descriptor.deviceName + "/" + entry.relative;
+        if (!builder.AddFile(target, *owner, entry.relative))
         {
-            extraction.result.warnings.push_back(
-                "'" + mod.name + "': cannot read '" + entry.relative + "' in '" +
-                entry.dlc->descriptor.deviceName + "' (" + bytes.GetMessage() + ")");
             continue;
         }
         provide(entry);
-        const std::string target =
-            "__dlc__/" + entry.dlc->descriptor.deviceName + "/" + entry.relative;
-        if (!extraction.WriteFile(extraction.result.root / target, bytes.GetValue(),
-                                  entry.item.filename))
-        {
-            continue;
-        }
         manifest += "data_file '" + entry.item.fileType + "' '" + EscapeLua(target) + "'\n";
     }
 }
+
+/// The FILETIME of the archive, which the game is given as every file's time.
+[[nodiscard]] uint64_t GetArchiveFileTime(const std::filesystem::path& archive)
+{
+    std::error_code error;
+    const std::filesystem::file_time_type written =
+        std::filesystem::last_write_time(archive, error);
+    return error ? 0 : static_cast<uint64_t>(written.time_since_epoch().count());
+}
 } // namespace
 
-spl::Result<void> ModExtractor::PruneCache(const std::filesystem::path& cacheRoot,
-                                           std::span<const DiscoveredMod> mods)
+ModLayout::Result ModLayout::Build(const DiscoveredMod& mod, const std::filesystem::path& modsRoot,
+                                   uint32_t gameBuild)
 {
-    std::error_code error;
-    std::filesystem::create_directories(cacheRoot, error);
-    if (error)
+    Result result{.root = modsRoot / SanitizeName(mod.name)};
+    LayoutBuilder builder{.result = result, .archiveName = mod.name};
+    const auto finish = [&]
     {
-        return MakeError(ErrorCode::Io, "cannot prepare the mods cache '{}' ({})",
-                         cacheRoot.string(), error.message());
-    }
-    std::unordered_set<std::string> kept;
-    for (const DiscoveredMod& mod : mods)
-    {
-        kept.insert(util::ToLower(SanitizeName(mod.name)));
-    }
-    for (std::filesystem::directory_iterator entry{cacheRoot, error}, end; entry != end && !error;
-         entry.increment(error))
-    {
-        if (!kept.contains(util::ToLower(entry->path().filename().string())))
-        {
-            std::error_code removeError;
-            std::filesystem::remove_all(entry->path(), removeError);
-        }
-    }
-    return {};
-}
-
-ModExtractor::Result ModExtractor::Extract(const DiscoveredMod& mod,
-                                           const std::filesystem::path& cacheRoot,
-                                           uint32_t gameBuild)
-{
-    Result result{.root = cacheRoot / SanitizeName(mod.name)};
-    const std::string stamp = MakeStamp(mod, gameBuild);
-    if (std::optional<Result> cached = ReadCachedResult(result.root, stamp))
-    {
-        return std::move(*cached);
-    }
-
-    std::error_code error;
-    std::filesystem::remove_all(result.root, error); // a stale or half-written extraction
-    error.clear();
-    std::filesystem::create_directories(result.root, error);
-    if (error)
-    {
-        result.warnings.push_back("cannot create '" + result.root.string() + "' (" +
-                                  error.message() + ")");
-        return result;
-    }
+        result.files = std::make_shared<const ModFileTree>(result.root, std::move(builder.archives),
+                                                           std::move(builder.files),
+                                                           GetArchiveFileTime(mod.absolutePath));
+    };
 
     spl::Result<rpf::RpfReader> opened = rpf::RpfReader::Open(mod.absolutePath);
     if (!opened)
     {
         result.warnings.push_back("cannot open '" + mod.absolutePath.string() + "' (" +
                                   opened.GetMessage() + ")");
+        finish();
         return result;
     }
-    const rpf::RpfReader& archive = opened.GetValue();
+    const rpf::RpfReader& archive = builder.Keep(std::move(opened.GetValue()));
     const ModOverlay overlay = ModOverlay::Build(mod.package);
-    Extraction extraction{.result = result, .archiveName = mod.name};
 
     for (const ModOverlay::StreamCandidate& candidate : overlay.StreamCandidates())
     {
-        extraction.ExtractStreamed(archive, ResolveSource(candidate.source), candidate.target);
+        builder.AddStreamed(archive, ResolveSource(candidate.source), candidate.target);
     }
     for (const ModOverlay::Mapping& map : overlay.MapTargets())
     {
-        extraction.ExtractStreamed(archive, ResolveSource(map.source), map.target);
+        builder.AddStreamed(archive, ResolveSource(map.source), map.target);
     }
     for (const ModOverlay::Mapping& manifest : overlay.ManifestTargets())
     {
-        extraction.ExtractStreamed(archive, ResolveSource(manifest.source), manifest.target);
+        builder.AddStreamed(archive, ResolveSource(manifest.source), manifest.target);
     }
 
     for (const ModOverlay::FauxPackJob& job : overlay.FauxPackJobs())
     {
-        if (const std::optional<rpf::RpfReader> pack =
-                OpenNested(result, mod.name, archive, ResolveSource(job.source)))
+        if (const rpf::RpfReader* const pack =
+                OpenNested(builder, mod.name, archive, ResolveSource(job.source)))
         {
-            extraction.ExtractPack(*pack);
+            builder.AddPack(*pack);
         }
     }
 
@@ -809,19 +609,8 @@ ModExtractor::Result ModExtractor::Extract(const DiscoveredMod& mod,
     for (const ModOverlay::Mapping& mapping : overlay.Mappings())
     {
         const std::optional<OverlayFolder> folder = FindOverlayFolder(mapping.target);
-        if (!folder || overlayTargets.contains(util::ToLower(mapping.target)))
-        {
-            continue;
-        }
-        const spl::Result<std::vector<std::byte>> bytes =
-            archive.ReadFile(ResolveSource(mapping.source));
-        if (!bytes)
-        {
-            result.warnings.push_back("'" + mod.name + "': cannot read '" + mapping.source + "' (" +
-                                      bytes.GetMessage() + ")");
-            continue;
-        }
-        if (!extraction.WriteFile(result.root / mapping.target, bytes.GetValue(), mapping.source))
+        if (!folder || overlayTargets.contains(util::ToLower(mapping.target)) ||
+            !builder.AddFile(mapping.target, archive, ResolveSource(mapping.source)))
         {
             continue;
         }
@@ -842,21 +631,14 @@ ModExtractor::Result ModExtractor::Extract(const DiscoveredMod& mod,
         }
         manifest += "data_file '" + std::string{*type} + "' '" + EscapeLua(meta.target) + "'\n";
     }
-    ExtractDlcs(mod, archive, overlay, gameBuild, extraction, manifest);
+    AddDlcs(mod, archive, overlay, gameBuild, builder, manifest);
 
-    std::ofstream stream{result.root / "fxmanifest.lua", std::ios::binary | std::ios::trunc};
-    stream << manifest;
-    if (!stream.good())
-    {
-        result.warnings.push_back("'" + mod.name + "': cannot write its manifest");
-        return result;
-    }
-    stream.close();
-    WriteCachedResult(result, stamp); // last, so an interrupted extraction is never reused
+    builder.files.push_back(ModFile{.path = "fxmanifest.lua", .source = std::move(manifest)});
+    finish();
     return result;
 }
 
-std::vector<std::string> ModExtractor::ReportUnresolvedDlcFiles(std::span<const Result> results)
+std::vector<std::string> ModLayout::ReportUnresolvedDlcFiles(std::span<const Result> results)
 {
     std::unordered_set<std::string> provided; ///< "<device>:/<path>"
     for (const Result& result : results)

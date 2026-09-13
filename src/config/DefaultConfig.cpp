@@ -32,7 +32,7 @@ priority = []                   # loaded first, in this order; the rest alphabet
 accept_legacy_manifest = true   # __resource.lua
 
 [mods]
-enabled = true                  # extract mods/*.rpf and load them after resources
+enabled = true                  # load mods/*.rpf after resources
 disabled = []                   # .rpf names without the extension, case-insensitive
 priority = []                   # loaded first among mods, in this order; the rest alphabetically
 

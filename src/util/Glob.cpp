@@ -6,9 +6,9 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <vector>
 
+#include "util/FileTree.h"
 #include "util/Strings.h"
 
 namespace spl::util
@@ -120,44 +120,26 @@ bool IsLiteralPattern(std::string_view pattern)
 
 std::vector<std::string> GlobFiles(const std::filesystem::path& root, std::string_view pattern)
 {
-    std::error_code error;
-    if (pattern.empty() || !std::filesystem::is_directory(root, error))
+    return GlobFiles(DiskFileTree::Instance(), root, pattern);
+}
+
+std::vector<std::string> GlobFiles(const IFileTree& files, const std::filesystem::path& root,
+                                   std::string_view pattern)
+{
+    if (pattern.empty())
     {
         return {};
     }
 
     // A set, so results are sorted and deduplicated the way FiveM's GlobValue produces them.
     std::set<std::string> matches;
-
-    std::filesystem::recursive_directory_iterator iterator{
-        root, std::filesystem::directory_options::skip_permission_denied, error};
-    if (error)
+    for (std::string& relative : files.ListFilesRecursive(root))
     {
-        return {};
-    }
-
-    for (const std::filesystem::directory_entry& entry : iterator)
-    {
-        std::error_code entryError;
-        if (!entry.is_regular_file(entryError))
+        if (MatchesGlob(pattern, relative))
         {
-            continue;
-        }
-
-        const std::filesystem::path relative =
-            std::filesystem::relative(entry.path(), root, entryError);
-        if (entryError)
-        {
-            continue;
-        }
-
-        std::string text = ToUtf8Generic(relative);
-        if (MatchesGlob(pattern, text))
-        {
-            matches.insert(std::move(text));
+            matches.insert(std::move(relative));
         }
     }
-
     return {matches.begin(), matches.end()};
 }
 } // namespace spl::util

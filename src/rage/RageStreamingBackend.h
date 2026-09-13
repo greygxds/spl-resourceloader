@@ -30,7 +30,6 @@ public:
     }
 
     [[nodiscard]] Result<void> PrepareResourceRoot(const std::filesystem::path& root) override;
-    [[nodiscard]] Result<void> PrepareModsRoot(const std::filesystem::path& root) override;
     [[nodiscard]] streaming::RegistrationOutcome
     RegisterAsset(const streaming::PlannedAsset& asset) override;
 

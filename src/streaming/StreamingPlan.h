@@ -71,7 +71,7 @@ struct ResourcePlan
     std::string name;
     uint32_t plannedAssets = 0;
     uint32_t skippedAssets = 0;
-    bool isMod = false; ///< an extracted user mod, which loses same-named files to resources
+    bool isMod = false; ///< a user mod, which loses same-named files to resources
 
     /// The map store has to be reloaded before the game sees this resource's maps
     /// (FiveM: LevelLoader.cpp:488-507).

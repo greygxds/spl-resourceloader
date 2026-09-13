@@ -42,6 +42,9 @@
     <ClCompile Include="$(SplRoot)src\rage\ForcedDevice.cpp">
       <Filter>src\rage</Filter>
     </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\ModArchiveDevice.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
     <ClCompile Include="$(SplRoot)src\memory\Pattern.cpp">
       <Filter>src\memory</Filter>
     </ClCompile>
@@ -81,6 +84,9 @@
       <Filter>src\rage</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\ForcedDevice.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\ModArchiveDevice.h">
       <Filter>src\rage</Filter>
     </ClInclude>
   </ItemGroup>

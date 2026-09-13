@@ -26,8 +26,8 @@ public:
     void Discover(const config::LoaderConfig& config, const std::filesystem::path& resolvedRoot,
                   std::span<const std::string> quarantined = {});
 
-    /// Appends pre-built candidates (extracted user mods) with the same filters and
-    /// manifest loading as discovery. They sort after everything discovered, so with the
+    /// Appends pre-built candidates (user mods laid out from their archives) with the same filters
+    /// and manifest loading as discovery. They sort after everything discovered, so with the
     /// default duplicate policy a same-named file loses to the resource's. A name that is
     /// already taken is skipped with an error: names share one namespace because
     /// quarantine looks them up. Returns the kept names, in order.

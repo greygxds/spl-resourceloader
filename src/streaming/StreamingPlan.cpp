@@ -22,6 +22,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "config/LoaderConfig.h"
+#include "core/Result.h"
 #include "logging/Logger.h"
 #include "manifest/ResourceManifest.h"
 #include "resource/Resource.h"
@@ -29,6 +30,7 @@
 #include "streaming/AssetType.h"
 #include "streaming/DataFileType.h"
 #include "streaming/StreamAsset.h"
+#include "util/FileTree.h"
 #include "util/Glob.h"
 #include "util/Strings.h"
 
@@ -146,7 +148,8 @@ void Shadow(StreamAsset& asset, std::string reason)
 
 struct ResolvedDataFilePaths
 {
-    std::filesystem::path root; ///< empty when an @resource names no resource
+    std::filesystem::path root;             ///< empty when an @resource names no resource
+    const util::IFileTree* files = nullptr; ///< non-null whenever root is set
     std::vector<std::string> relativePaths;
 };
 
@@ -160,6 +163,7 @@ ResolveDataFilePaths(const manifest::DataFileEntry& entry, const resource::Resou
     if (entry.otherResource.empty())
     {
         return ResolvedDataFilePaths{.root = resource.GetRootPath(),
+                                     .files = &resource.GetFiles(),
                                      .relativePaths = entry.resolved};
     }
     const auto other = std::ranges::find_if(
@@ -169,9 +173,10 @@ ResolveDataFilePaths(const manifest::DataFileEntry& entry, const resource::Resou
     {
         return {};
     }
-    ResolvedDataFilePaths paths{.root = other->GetRootPath(),
-                                .relativePaths =
-                                    util::GlobFiles(other->GetRootPath(), entry.pattern)};
+    ResolvedDataFilePaths paths{
+        .root = other->GetRootPath(),
+        .files = &other->GetFiles(),
+        .relativePaths = util::GlobFiles(other->GetFiles(), other->GetRootPath(), entry.pattern)};
     if (paths.relativePaths.empty() && util::IsLiteralPattern(entry.pattern))
     {
         paths.relativePaths.push_back(entry.pattern);
@@ -206,12 +211,12 @@ FindDataFileSwitch(const DataFileTypeInfo& info, const config::DataFileSettings&
     return std::nullopt;
 }
 
-/// True when a data file's path names something on disk. An audio path names its data without
+/// True when a data file's path names an existing file. An audio path names its data without
 /// the engine's suffix ('x_game.dat' for x_game.dat151.rel), or a wave pack folder.
-[[nodiscard]] bool HasDataOnDisk(const std::filesystem::path& path, DataFileCategory category)
+[[nodiscard]] bool HasData(const util::IFileTree& files, const std::filesystem::path& path,
+                           DataFileCategory category)
 {
-    std::error_code error;
-    if (std::filesystem::exists(path, error))
+    if (files.Stat(path))
     {
         return true;
     }
@@ -221,14 +226,14 @@ FindDataFileSwitch(const DataFileTypeInfo& info, const config::DataFileSettings&
     }
 
     const std::string prefix = util::ToLower(util::ToUtf8(path.filename()));
-    std::filesystem::directory_iterator entries{path.parent_path(), error};
-    if (error)
+    const Result<std::vector<util::FileTreeEntry>> entries = files.List(path.parent_path());
+    if (!entries)
     {
         return false;
     }
-    for (const std::filesystem::directory_entry& entry : entries)
+    for (const util::FileTreeEntry& entry : entries.GetValue())
     {
-        const std::string name = util::ToLower(util::ToUtf8(entry.path().filename()));
+        const std::string name = util::ToLower(util::ToUtf8(entry.path.filename()));
         if (name.starts_with(prefix) && name.ends_with(kAudioDataSuffix))
         {
             return true;
@@ -521,7 +526,7 @@ void StreamingPlan::CollectDataFiles(std::span<const resource::Resource> resourc
                     .fileName = util::ToLower(util::ToUtf8(path.filename()))};
 
                 if (info->policy != DataFilePolicy::TypeRequest &&
-                    !HasDataOnDisk(dataFile.absolutePath, info->category))
+                    !HasData(*paths.files, dataFile.absolutePath, info->category))
                 {
                     // Still handed over, as FiveM does: the game's mounter has the last word.
                     SPL_LOG_WARNING(Streaming,

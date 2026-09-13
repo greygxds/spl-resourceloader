@@ -26,15 +26,6 @@ constexpr uint32_t kHeaderSizeBytes = 16;
 
 using ForwardFn = uint64_t (*)(void* self, uint64_t, uint64_t, uint64_t, uint64_t);
 
-/// rage::fiFindData, as FiveM's rage-device-five fiDevice.h declares it.
-struct FindDataView
-{
-    char fileName[256];  // +0x000
-    uint64_t fileSize;   // +0x100
-    uint64_t writeTime;  // +0x108
-    uint32_t attributes; // +0x110
-};
-
 [[nodiscard]] LooseResourceDevice& OwnerOf(void* self)
 {
     return *static_cast<LooseResourceDeviceObject*>(self)->owner;

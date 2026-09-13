@@ -17,8 +17,8 @@ namespace spl::rage
 /// cannot collide with a game or DLC mount.
 constexpr std::string_view kResourcesMountPoint = "splres:/";
 
-/// The mount point the extracted user-mods cache is reached through. A
-/// separate mount, so resource VFS paths never shift when mods come and go.
+/// The mount point user mods are served at, straight from their archives. A separate mount,
+/// so resource VFS paths never shift when mods come and go.
 constexpr std::string_view kModsMountPoint = "splmods:/";
 
 /// The root string fiDeviceRelative::SetPath wants: UTF-8, forward slashes, trailing slash.

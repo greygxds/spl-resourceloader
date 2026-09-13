@@ -77,7 +77,7 @@ struct LoggingSettings
     bool operator==(const LoggingSettings&) const = default;
 };
 
-/// User-installed .rpf mods: extracted to the cache dir and loaded as
+/// User-installed .rpf mods: read straight from their archives and loaded as
 /// resources sorted after everything discovered, so same-named files lose to resources.
 struct ModsSettings
 {

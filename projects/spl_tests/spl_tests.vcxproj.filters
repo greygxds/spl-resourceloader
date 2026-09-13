@@ -120,13 +120,16 @@
     <ClCompile Include="$(SplRoot)tests\mods\AssemblyParserTests.cpp">
       <Filter>tests\mods</Filter>
     </ClCompile>
-    <ClCompile Include="$(SplRoot)tests\mods\ModExtractorTests.cpp">
-      <Filter>tests\mods</Filter>
-    </ClCompile>
     <ClCompile Include="$(SplRoot)tests\mods\ModOverlayTests.cpp">
       <Filter>tests\mods</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)tests\mods\ModsScannerTests.cpp">
+      <Filter>tests\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\mods\ModLayoutTests.cpp">
+      <Filter>tests\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\mods\ModFileTreeTests.cpp">
       <Filter>tests\mods</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)tests\memory\AddressTests.cpp">
@@ -160,6 +163,9 @@
       <Filter>tests\rage</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)tests\rage\VfsPathTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\ModArchiveDeviceTests.cpp">
       <Filter>tests\rage</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)tests\resource\ResourceManagerTests.cpp">

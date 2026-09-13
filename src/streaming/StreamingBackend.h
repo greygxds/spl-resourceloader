@@ -93,15 +93,6 @@ public:
     /// Makes root reachable by the game, so that a VFS path can name a file inside it.
     [[nodiscard]] virtual Result<void> PrepareResourceRoot(const std::filesystem::path& root) = 0;
 
-    /// Makes the extracted user-mods cache reachable the same way. Defaults to a no-op so
-    /// test fakes, which have no device layer, keep compiling; the real backend mounts it
-    /// at a second mount point. Only called when at least one mod was adopted.
-    [[nodiscard]] virtual Result<void> PrepareModsRoot(const std::filesystem::path& root)
-    {
-        (void)root;
-        return {};
-    }
-
     /// Makes one asset known to the game. Never throws and never reports absence as failure.
     [[nodiscard]] virtual RegistrationOutcome RegisterAsset(const PlannedAsset& asset) = 0;
 

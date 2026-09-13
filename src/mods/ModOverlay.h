@@ -34,7 +34,7 @@ public:
     };
 
     /// A mapped metadata file (.meta/.dat/.xml). Served through the overlay like every
-    /// mapping; the extractor also loads it as a data file when its name gives the type.
+    /// mapping; the layout also loads it as a data file when its name gives the type.
     struct MetaFile
     {
         std::string source;
