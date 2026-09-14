@@ -156,11 +156,25 @@ void AddOverlayRoot(ModLayout::Result& result, const OverlayFolder& folder, std:
     std::string out;
     for (const char c : text)
     {
-        if (c == '\'' || c == '\\')
+        switch (c)
         {
+        case '\'':
+        case '\\':
             out.push_back('\\');
+            out.push_back(c);
+            break;
+        case '\n': // a quoted Lua string cannot span lines
+            out += "\\n";
+            break;
+        case '\r':
+            out += "\\r";
+            break;
+        case '\0':
+            out += "\\0";
+            break;
+        default:
+            out.push_back(c);
         }
-        out.push_back(c);
     }
     return out;
 }
@@ -517,8 +531,7 @@ void AddDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const ModO
             provide(entry);
             // Requested even when no pack has it: it may name a .ytyp of the game, of another
             // DLC or of another mod, which the streaming plan checks and reports.
-            const std::string target =
-                builder.streamNames.contains(name) ? "stream/" + name : name;
+            const std::string target = builder.streamNames.contains(name) ? "stream/" + name : name;
             manifest +=
                 "data_file '" + std::string{kItypRequestType} + "' '" + EscapeLua(target) + "'\n";
             continue;
