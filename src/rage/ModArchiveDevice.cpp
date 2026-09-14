@@ -112,38 +112,61 @@ uint64_t RefuseHandle(void* /*self*/, const char* /*fileName*/)
     return kInvalidFileHandleRaw;
 }
 
-/// Copies up to length bytes from offset into buffer.
-[[nodiscard]] uint32_t CopyOut(const ModArchiveDevice::OpenFile& file, uint64_t offset,
-                               void* buffer, uint32_t length)
+/// How many of length bytes from offset a read gets.
+[[nodiscard]] uint32_t CountReadable(const DeviceFileBytes& bytes, uint64_t offset,
+                                     const void* buffer, uint32_t length)
 {
-    const uint64_t available = file.bytes.bytes.size();
+    const uint64_t available = bytes.bytes.size();
     if (offset >= available || buffer == nullptr)
     {
         return 0;
     }
-    const auto count = static_cast<uint32_t>(std::min<uint64_t>(length, available - offset));
-    std::memcpy(buffer, file.bytes.bytes.data() + offset, count);
-    return count;
+    return static_cast<uint32_t>(std::min<uint64_t>(length, available - offset));
 }
+
+/// A read decided under the device lock and copied after it: the bytes never change, and the
+/// copy keeps them alive, so a large read does not hold up every other streaming thread.
+struct PendingRead
+{
+    DeviceFileBytes bytes;
+    uint64_t offset = 0;
+    uint32_t count = kFailedCount;
+
+    uint32_t CopyInto(void* buffer) const
+    {
+        if (count != kFailedCount && count != 0)
+        {
+            std::memcpy(buffer, bytes.bytes.data() + offset, count);
+        }
+        return count;
+    }
+};
 
 uint32_t Read(void* self, uint64_t handle, void* buffer, uint32_t length)
 {
-    uint32_t count = kFailedCount;
+    PendingRead read;
     OwnerOf(self).WithFile(handle,
                            [&](ModArchiveDevice::OpenFile& file)
                            {
-                               count = CopyOut(file, file.cursor, buffer, length);
-                               file.cursor += count;
+                               read.bytes = file.bytes;
+                               read.offset = file.cursor;
+                               read.count = CountReadable(file.bytes, file.cursor, buffer, length);
+                               file.cursor += read.count;
                            });
-    return count;
+    return read.CopyInto(buffer);
 }
 
 uint32_t ReadBulk(void* self, uint64_t handle, uint64_t offset, void* buffer, uint32_t length)
 {
-    uint32_t count = kFailedCount;
-    OwnerOf(self).WithFile(handle, [&](const ModArchiveDevice::OpenFile& file)
-                           { count = CopyOut(file, offset, buffer, length); });
-    return count;
+    PendingRead read;
+    OwnerOf(self).WithFile(handle,
+                           [&](const ModArchiveDevice::OpenFile& file)
+                           {
+                               read.bytes = file.bytes;
+                               read.offset = offset;
+                               read.count = CountReadable(file.bytes, offset, buffer, length);
+                           });
+    return read.CopyInto(buffer);
 }
 
 bool ReadFull(void* self, uint64_t handle, void* buffer, uint32_t length)
