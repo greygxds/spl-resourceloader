@@ -6,12 +6,16 @@
 #include <catch_amalgamated.hpp>
 
 #include "core/Result.h"
+#include "manifest/ManifestParser.h"
 #include "mods/ModLayout.h"
 #include "mods/ModPackage.h"
 #include "mods/ModsScanner.h"
 #include "tests/TempTree.h"
 #include "tests/rpf/RpfBuilder.h"
 
+using spl::manifest::ManifestEntry;
+using spl::manifest::ManifestParser;
+using spl::manifest::ParseResult;
 using spl::mods::DiscoveredMod;
 using spl::mods::ModEntry;
 using spl::mods::ModLayout;
@@ -249,6 +253,36 @@ TEST_CASE("ModLayout: loads content DLCs in order", "[mods]")
     // Both DLCs ship the same top.ytd: the first keeps it, and a pack repeating a name of an
     // earlier pack of the same mod is expected, not a warning.
     CHECK(laid.warnings.empty());
+}
+
+TEST_CASE("ModLayout: a file name with a line break keeps the manifest valid", "[mods]")
+{
+    TempDir dir;
+    RpfBuilder dlc;
+    dlc.AddFile("setup2.xml", "<SSetupData><deviceName>dlc_odd</deviceName></SSetupData>");
+    dlc.AddFile("content.xml", "<CDataFileMgr__ContentsOfDataFileXml><dataFiles>"
+                               "<Item><filename>common/data/odd\nname.meta</filename>"
+                               "<fileType>VEHICLE_METADATA_FILE</fileType></Item>"
+                               "</dataFiles></CDataFileMgr__ContentsOfDataFileXml>");
+    dlc.AddFile("common/data/odd\nname.meta", "vehicles");
+    RpfBuilder builder;
+    builder.AddFile("assembly.xml", "<package/>");
+    builder.AddFile("content/odd.rpf", dlc.Build());
+    dir.WriteFile("patch.rpf", builder.Build());
+
+    ModPackage package;
+    package.entries = {Add({}, "odd.rpf", "odd.rpf")};
+    const DiscoveredMod mod{
+        .name = "patch", .absolutePath = dir.Path() / "patch.rpf", .package = std::move(package)};
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
+
+    const ParseResult parsed =
+        ManifestParser::Parse(Read(laid, "fxmanifest.lua"), "fxmanifest.lua");
+    CHECK_FALSE(parsed.fatal);
+    const std::vector<const ManifestEntry*> extras = parsed.document.GetEntries("data_file_extra");
+    REQUIRE(extras.size() == 1);
+    CHECK(extras.front()->decoded ==
+          std::vector<std::string>{"__dlc__/dlc_odd/common/data/odd\nname.meta"});
 }
 
 TEST_CASE("ModLayout: skips DLCs outside their required version", "[mods]")
