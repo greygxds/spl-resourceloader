@@ -575,7 +575,7 @@ ConfigLoadResult ConfigLoader::LoadOrCreate(const std::filesystem::path& file)
         {
             result.diagnostics.warnings.push_back(
                 fmt::format("Could not write the default configuration to '{}' (using defaults)",
-                            file.string()));
+                            util::ToUtf8(file)));
             return result;
         }
     }
@@ -584,7 +584,7 @@ ConfigLoadResult ConfigLoader::LoadOrCreate(const std::filesystem::path& file)
     if (!stream)
     {
         result.diagnostics.errors.push_back(
-            fmt::format("Could not open '{}' (using defaults)", file.string()));
+            fmt::format("Could not open '{}' (using defaults)", util::ToUtf8(file)));
         return result;
     }
 
