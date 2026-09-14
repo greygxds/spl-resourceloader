@@ -147,6 +147,12 @@ private:
     /// One warning per resource whose level metas cannot load this session.
     void WarnAboutLevelMetas() const;
 
+    /// Applies the [memory] extensions the config asks for. Only while the game starts.
+    void ExtendMemoryBudgets();
+
+    /// One warning when [memory] asks for an extension that cannot apply this session.
+    void WarnAboutMemoryBudgets() const;
+
     /// Mounts the resources folder, the mods and the mods' overlays, once.
     void MountGameRoots();
 

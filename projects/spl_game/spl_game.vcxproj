@@ -72,6 +72,7 @@
     <ClCompile Include="$(SplRoot)src\rage\InitHooks.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\ManifestChunkLoader.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\MapStoreReloader.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\MemoryBudget.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\Natives.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\OverrideHooks.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\RageBridge.cpp" />
@@ -98,6 +99,7 @@
     <ClInclude Include="$(SplRoot)src\rage\InitHooks.h" />
     <ClInclude Include="$(SplRoot)src\rage\ManifestChunkLoader.h" />
     <ClInclude Include="$(SplRoot)src\rage\MapStoreReloader.h" />
+    <ClInclude Include="$(SplRoot)src\rage\MemoryBudget.h" />
     <ClInclude Include="$(SplRoot)src\rage\Natives.h" />
     <ClInclude Include="$(SplRoot)src\rage\OverrideHooks.h" />
     <ClInclude Include="$(SplRoot)src\rage\RageBridge.h" />
@@ -112,6 +114,7 @@
     <ClInclude Include="$(SplRoot)src\rage\types\DataFileTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\FileDeviceTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\MapStoreTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\MemoryBudgetTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\StreamingTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\VirtualCall.h" />
   </ItemGroup>

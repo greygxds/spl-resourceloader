@@ -160,6 +160,10 @@ bool Application::Initialize()
                                   "start; registering from story mode instead");
         }
         WarnAboutLevelMetas();
+        if (!m_startedEarly)
+        {
+            WarnAboutMemoryBudgets();
+        }
         ConnectToGame(false);
     }
 
@@ -270,7 +274,7 @@ EarlyStart Application::TryStartEarly()
         return EarlyStart::NotReady; // GTA5.exe has not decrypted its code yet
     }
 
-    if (Result<void> resolved = m_bridge.Resolve(m_config); !resolved)
+    if (Result<void> resolved = m_bridge.Resolve(); !resolved)
     {
         SPL_LOG_WARNING(Core, "Starting with story mode instead of with the game: {}",
                         resolved.GetMessage());
@@ -291,6 +295,7 @@ EarlyStart Application::TryStartEarly()
 
     m_startedEarly = true;
     SPL_LOG_INFO(Core, "Starting with the game (early_init)");
+    ExtendMemoryBudgets();
     if (!m_bridge.Init().HasInitialMountHook() && !m_modOverlays.empty())
     {
         SPL_LOG_WARNING(Mods, "Mod files are mounted only once the session starts, after the game "
@@ -440,6 +445,47 @@ rage::LevelMetas Application::CollectLevelMetas() const
         add(resource, manifest->afterLevelMetas, metas.after);
     }
     return metas;
+}
+
+void Application::ExtendMemoryBudgets()
+{
+    const config::MemorySettings& settings = m_config.memory;
+    if (settings.extendedTextureBudget)
+    {
+        if (const Result<uint64_t> extended =
+                m_bridge.Memory().ExtendTextureBudget(settings.textureBudgetScale);
+            !extended)
+        {
+            SPL_LOG_WARNING(Core, "The texture budget was not extended: {}", extended.GetMessage());
+        }
+        else
+        {
+            SPL_LOG_INFO(Core, "Texture budget extended to {:.1f} GiB (scale {})",
+                         static_cast<double>(extended.GetValue()) / (1024.0 * 1024.0 * 1024.0),
+                         settings.textureBudgetScale);
+        }
+    }
+    if (settings.extendedStreamingMemory)
+    {
+        if (const Result<uint32_t> extended = m_bridge.Memory().ExtendStreamingMemory(); !extended)
+        {
+            SPL_LOG_WARNING(Core, "Streaming memory was not extended: {}", extended.GetMessage());
+        }
+        else
+        {
+            SPL_LOG_INFO(Core, "Streaming memory extended to {:.1f} GiB",
+                         static_cast<double>(extended.GetValue()) / (1024.0 * 1024.0 * 1024.0));
+        }
+    }
+}
+
+void Application::WarnAboutMemoryBudgets() const
+{
+    if (m_config.memory.extendedTextureBudget || m_config.memory.extendedStreamingMemory)
+    {
+        SPL_LOG_WARNING(Core, "The [memory] extensions are not applied; they need the loader to "
+                              "start with the game (loader.early_init)");
+    }
 }
 
 void Application::WarnAboutLevelMetas() const

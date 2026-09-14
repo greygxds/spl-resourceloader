@@ -97,6 +97,11 @@ void ResourceManager::Discover(const config::LoaderConfig& config,
     {
         return;
     }
+    if (!config.resources.enabled)
+    {
+        SPL_LOG_INFO(Resource, "Resources disabled by configuration (resources.enabled = false)");
+        return;
+    }
 
     ResourceScanner::Result scan =
         ResourceScanner::Scan(resolvedRoot, config.resources.acceptLegacyManifest);
@@ -207,15 +212,6 @@ bool ResourceManager::AddResource(const config::LoaderConfig& config, ResourceCa
                         "Resource '{}' is quarantined because the game crashed while it was "
                         "being registered; remove it from state.toml to try it again",
                         name);
-        return true;
-    }
-
-    // With auto_discover off, the priority list is the whole list: nothing else loads.
-    if (!isMod && !config.resources.autoDiscover &&
-        !ContainsIgnoreCase(config.resources.priority, name))
-    {
-        resource.SetState(ResourceState::Disabled, "not in priority list");
-        SPL_LOG_DEBUG(Resource, "Resource '{}' disabled (not in priority list)", name);
         return true;
     }
 

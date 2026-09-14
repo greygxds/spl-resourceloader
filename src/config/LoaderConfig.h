@@ -39,10 +39,6 @@ struct LoaderSettings
     bool console = false; ///< live log window that also takes commands ("help")
     SafeMode safeMode = SafeMode::Auto;
 
-    /// Run on a game build newer than every verified one when all its signatures resolve and
-    /// every layout check passes. Map-store patches stay off on such a build regardless.
-    bool allowUnverifiedBuilds = true;
-
     /// Start with the game rather than with story mode: mods replace game files
     /// before they are read, level metas load, and registration happens during the load.
     /// Without the hooks it needs, the loader still starts with story mode.
@@ -62,7 +58,7 @@ struct PathSettings
 
 struct ResourceSettings
 {
-    bool autoDiscover = true;
+    bool enabled = true;
     std::vector<std::string> disabled; ///< resource names, compared case-insensitively
     std::vector<std::string> priority; ///< loaded first, in this order; the rest alphabetically
     bool acceptLegacyManifest = true;  ///< __resource.lua as well as fxmanifest.lua
@@ -122,6 +118,23 @@ struct DataFileSettings
     bool operator==(const DataFileSettings&) const = default;
 };
 
+/// FiveM's memory extensions (gta-streaming-five/src/PatchExtendedBudgeting.cpp). Both patch the
+/// game before it sets its memory up, so they need the loader to start with the game.
+struct MemorySettings
+{
+    static constexpr uint32_t kMaxTextureBudgetScale = 12; ///< PatchExtendedBudgeting.cpp:35
+
+    /// A 3 GB texture VRAM budget, as FiveM's "Extended Texture Budget", scaled by
+    /// textureBudgetScale.
+    bool extendedTextureBudget = false;
+    uint32_t textureBudgetScale = 0; ///< 0 to 12: 1.0x to 2.0x the budget
+
+    /// With 12 GB of RAM or more: a bigger streaming allocator and resource cache.
+    bool extendedStreamingMemory = false;
+
+    bool operator==(const MemorySettings&) const = default;
+};
+
 /// How the map data store is rebuilt after maps were registered.
 enum class MapReloadStrategy
 {
@@ -154,6 +167,7 @@ struct LoaderConfig
     LoggingSettings logging;
     StreamingSettings streaming;
     DataFileSettings dataFiles;
+    MemorySettings memory;
     DiagnosticsSettings diagnostics;
 
     bool operator==(const LoaderConfig&) const = default;

@@ -106,6 +106,7 @@
     <ClCompile Include="$(SplRoot)tests\rage\LooseResourceDeviceTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\ForcedDeviceTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\MapStoreTypesTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\MemoryBudgetTypesTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\StreamingTypesTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\VfsPathTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\ModArchiveDeviceTests.cpp" />

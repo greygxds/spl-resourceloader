@@ -15,6 +15,7 @@
 #include "rage/InteriorProxyPool.h"
 #include "rage/ManifestChunkLoader.h"
 #include "rage/MapStoreReloader.h"
+#include "rage/MemoryBudget.h"
 #include "rage/OverrideHooks.h"
 #include "rage/RawStreamerInterface.h"
 #include "rage/StreamingInterface.h"
@@ -46,7 +47,7 @@ public:
 
     /// Detects the build and resolves the signature table, reading the image and nothing else,
     /// so it is safe while the game is still starting. Idempotent.
-    [[nodiscard]] Result<void> Resolve(const config::LoaderConfig& config);
+    [[nodiscard]] Result<void> Resolve();
 
     /// Only meaningful after a successful Resolve().
     [[nodiscard]] const GameAddresses& GetAddresses() const
@@ -103,6 +104,13 @@ public:
     [[nodiscard]] GamePatches& Patches()
     {
         return m_patches;
+    }
+
+    /// FiveM's memory extensions. Usable after Resolve(), which is what lets them go in while the
+    /// game starts.
+    [[nodiscard]] MemoryBudget& Memory()
+    {
+        return m_memoryBudget;
     }
 
     /// Only usable when GetOverrideSupport() succeeded.
@@ -180,6 +188,7 @@ private:
     DataFileInterface m_dataFiles;
     ContentInterface m_content;
     GamePatches m_patches;
+    MemoryBudget m_memoryBudget;
     ManifestChunkLoader m_manifests;
     MapStoreReloader m_mapStore;
     RawStreamerInterface m_rawStreamer;

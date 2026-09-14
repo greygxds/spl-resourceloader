@@ -17,6 +17,7 @@ TEST_CASE("StreamingTypes: the manager layout matches the game", "[rage]")
     STATIC_REQUIRE(sizeof(StreamingDataEntry) == 8);
     STATIC_REQUIRE(offsetof(strStreamingInfoManagerView, entries) == 0x000);
     STATIC_REQUIRE(offsetof(strStreamingInfoManagerView, numEntries) == 0x018);
+    STATIC_REQUIRE(offsetof(strStreamingInfoManagerView, loadedListCount) == 0x108);
     STATIC_REQUIRE(offsetof(strStreamingInfoManagerView, moduleMgr) == 0x1B8);
     STATIC_REQUIRE(offsetof(strStreamingInfoManagerView, numPendingRequests) == 0x1E0);
     STATIC_REQUIRE(offsetof(strStreamingModuleMgrView, modules) == 0x018);

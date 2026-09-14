@@ -8,7 +8,7 @@ namespace
 {
 /// THE signature table. No pattern string exists anywhere else in the codebase, so checking
 /// a new game build means reading this one array.
-constexpr std::array<SignatureSpec, 50> kSignatures = {{
+constexpr std::array<SignatureSpec, 56> kSignatures = {{
     // The LEA at match+8 loads the manager object itself, not a pointer to it, so the
     // rip-relative target is the instance.
     {.name = "strStreamingInfoManager::sm_instance",
@@ -317,6 +317,42 @@ constexpr std::array<SignatureSpec, 50> kSignatures = {{
      .offset = 6,
      .required = false,
      .source = "FiveM rage-device-five/src/HookInitialMount.cpp:216"},
+
+    // Memory extensions, opted into with [memory]. Optional: a miss turns off only that one.
+    // The four bytes at the match + 6 are the disp32 of the LEA that loads the budget table.
+    {.name = "TextureBudgetTable",
+     .pattern = "4C 63 C0 48 8D 05 ? ? ? ? 48 8D 14",
+     .offset = 6,
+     .kind = ResolveKind::RipRelative,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:163"},
+    {.name = "GetTextureVideoMemoryUsage",
+     .pattern = "B9 84 04 00 00 41 B9 6B",
+     .offset = -0x3A,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:136"},
+    {.name = "GetAvailableMemoryForStreamer",
+     .pattern = "E8 ? ? ? ? 48 8D 0C 3B 48 3B C1",
+     .kind = ResolveKind::CallTarget,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:137"},
+    // The imm32s of the grcResourceCache pool size and of the limit that goes with it.
+    {.name = "ResourceCachePoolSize",
+     .pattern = "BA 00 00 05 00 48 8B C8 44 88",
+     .offset = 1,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:176"},
+    {.name = "ResourceCachePoolLimit",
+     .pattern = "BA 00 00 05 00 48 8B C8 44 88",
+     .offset = 23,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:177"},
+    // The imm32 of the "mov r8d, 0x40000000" that sizes the streaming allocator.
+    {.name = "StreamingAllocatorReservation",
+     .pattern = "41 B8 00 00 00 40 48 8B D5 89",
+     .offset = 2,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:181"},
 }};
 } // namespace
 

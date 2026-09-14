@@ -166,6 +166,25 @@ struct GameAddresses
     /// The imm32 holding the game's non-DLC mount limit, raised.
     uintptr_t fiDeviceMountLimit = 0;
 
+    // Memory extensions. All optional.
+
+    /// The texture VRAM budget table, rows of four uint64 budgets, rewritten by MemoryBudget.
+    uintptr_t textureBudgetTable = 0;
+
+    /// The graphics menu's texture memory estimate, (void* self, int quality, void* settings),
+    /// hooked.
+    uintptr_t getTextureVideoMemoryUsage = 0;
+
+    /// How much memory the streamer may still use, (void* self), hooked.
+    uintptr_t getAvailableMemoryForStreamer = 0;
+
+    /// The imm32s of the grcResourceCache pool size and its limit, raised.
+    uintptr_t resourceCachePoolSize = 0;
+    uintptr_t resourceCachePoolLimit = 0;
+
+    /// The imm32 of the streaming allocator's reservation, raised.
+    uintptr_t streamingAllocatorReservation = 0;
+
     /// Copies the addresses this struct needs out of a resolve pass. An error means a
     /// required signature is missing, and the bridge must stay disabled.
     [[nodiscard]] static Result<GameAddresses> Build(const ResolvedSignatures& resolved);
