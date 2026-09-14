@@ -137,6 +137,20 @@ TEST_CASE("ModLayout: the first basename wins", "[mods]")
     CHECK(Mentions(laid.warnings, "already provided"));
 }
 
+TEST_CASE("ModLayout: basenames that differ only in case clash too", "[mods]")
+{
+    TempDir dir;
+    const DiscoveredMod mod =
+        WriteMod(dir, "clash",
+                 {Add({"update\\update.rpf", "x64\\a.rpf"}, "one.ytd", "Same.ytd"),
+                  Add({"update\\update.rpf", "x64\\b.rpf"}, "two.ytd", "same.ytd")});
+
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
+
+    CHECK(Read(laid, "stream/same.ytd") == "one");
+    CHECK(Mentions(laid.warnings, "already provided"));
+}
+
 TEST_CASE("ModLayout: resolves bare backslash sources under content/", "[mods]")
 {
     TempDir dir;

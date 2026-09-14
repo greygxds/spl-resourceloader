@@ -222,7 +222,7 @@ struct LayoutBuilder
     std::string archiveName;
     std::vector<std::unique_ptr<rpf::RpfReader>> archives;
     std::vector<ModFile> files;
-    std::unordered_set<std::string> streamNames;
+    std::unordered_set<std::string> streamNames; ///< lower-case basenames under stream/
     std::size_t packCount = 0;
 
     /// Reads an archive-relative file (setup2.xml, content.xml, ...) as text.
@@ -289,7 +289,7 @@ struct LayoutBuilder
                      std::string_view target)
     {
         const std::string name = BaseName(target);
-        if (!streamNames.insert(name).second)
+        if (!streamNames.insert(util::ToLower(name)).second)
         {
             result.warnings.push_back("'" + archiveName + "': '" + std::string{source} +
                                       "' skipped, '" + name + "' is already provided");
@@ -333,13 +333,6 @@ struct LayoutBuilder
 /// The type request content.xml spells with the platform-neutral .ityp extension; the game
 /// resolves it by streaming name to the platform's .ytyp.
 constexpr std::string_view kItypRequestType = "DLC_ITYP_REQUEST";
-
-[[nodiscard]] bool IsStreamed(const std::unordered_set<std::string>& streamNames,
-                              std::string_view name)
-{
-    return std::ranges::any_of(streamNames, [name](const std::string& streamed)
-                               { return util::EqualsIgnoreCase(streamed, name); });
-}
 
 void AddDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const ModOverlay& overlay,
              uint32_t gameBuild, LayoutBuilder& builder, std::string& manifest)
@@ -510,7 +503,7 @@ void AddDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const ModO
             {
                 name.replace(name.size() - 5, 5, ".ytyp");
             }
-            if (!IsStreamed(builder.streamNames, name))
+            if (!builder.streamNames.contains(name))
             {
                 // A loose .ytyp in the pack itself streams like any other.
                 std::string loose = entry.relative;
@@ -525,7 +518,7 @@ void AddDlcs(const DiscoveredMod& mod, const rpf::RpfReader& archive, const ModO
             // Requested even when no pack has it: it may name a .ytyp of the game, of another
             // DLC or of another mod, which the streaming plan checks and reports.
             const std::string target =
-                IsStreamed(builder.streamNames, name) ? "stream/" + name : name;
+                builder.streamNames.contains(name) ? "stream/" + name : name;
             manifest +=
                 "data_file '" + std::string{kItypRequestType} + "' '" + EscapeLua(target) + "'\n";
             continue;
