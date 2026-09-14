@@ -153,3 +153,19 @@ TEST_CASE("Logger: the start date is on the second line, and lines carry only th
     CHECK(log[lineStart + 3] == ':');
     CHECK_FALSE(Contains(log, "\x1b[")); // the console's colors never reach the file
 }
+
+TEST_CASE("Logger: a data folder outside the system code page still gets its log", "[logging]")
+{
+    const spl::tests::TempDir dir;
+    const std::filesystem::path dataDir = dir.Path() / std::filesystem::path{u8"данные_数据"};
+    LoggingSettings settings;
+    settings.level = LogLevel::Warning;
+    REQUIRE(spl::logging::Initialize(settings, false, dataDir));
+    SPL_LOG_WARNING(Core, "a line in a unicode folder");
+    spl::logging::Get(Channel::Core)->flush();
+    spl::logging::Shutdown();
+
+    std::ifstream stream{dataDir / "resourceLoader.log", std::ios::binary};
+    const std::string log{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+    REQUIRE(Contains(log, "a line in a unicode folder"));
+}

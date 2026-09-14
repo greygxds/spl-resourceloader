@@ -318,7 +318,7 @@ bool Initialize(const config::LoggingSettings& settings, bool console,
             state.bannerWritten = true;
 
             auto fileSink =
-                std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile.string(), false);
+                std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile.wstring(), false);
             fileSink->set_pattern(std::string{kFilePattern});
             state.sinks.push_back(std::move(fileSink));
         }
