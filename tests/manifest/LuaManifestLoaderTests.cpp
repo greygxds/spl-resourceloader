@@ -67,6 +67,19 @@ TEST_CASE("LuaManifestLoader: a second argument becomes a JSON _extra", "[manife
             PairList{{"my_data", "a"}, {"my_data_extra", "[\"b\"]"}});
 }
 
+TEST_CASE("LuaManifestLoader: arguments past the second are ignored", "[manifest][lua]")
+{
+    const auto chunk = GENERATE(as<std::string>{}, "my_data 'a' 'b' 'c'\ngame 'gta5'",
+                                "my_data 'a' 'b' 'c' 'd' 'e'\ngame 'gta5'");
+
+    const ParseResult result = Run(chunk);
+
+    INFO("chunk: " << chunk);
+    REQUIRE_FALSE(result.fatal);
+    REQUIRE(EntryPairs(result) ==
+            PairList{{"my_data", "a"}, {"my_data_extra", "\"b\""}, {"game", "gta5"}});
+}
+
 TEST_CASE("LuaManifestLoader: _extra uses the de-pluralized key of a table argument",
           "[manifest][lua]")
 {

@@ -154,6 +154,14 @@ void AddEntry(lua_State* state, std::string key, std::string value,
                                                   .line = line});
 }
 
+/// Takes any argument past the second and returns itself, so however long the chain is, the
+/// next call still has a function to call.
+int IgnoredArgumentFunction(lua_State* state)
+{
+    lua_pushcfunction(state, IgnoredArgumentFunction);
+    return 1;
+}
+
 /// The function returned by the value function: `key 'a' 'b'` calls this with 'b'.
 /// Upvalue 1 is newK, so the key is the de-pluralized one exactly when the first value was a
 /// table, matching `newK .. '_extra'` in resource_init.lua.
@@ -168,12 +176,7 @@ int ExtraFunction(lua_State* state)
     // resource_init.lua returns nothing here, so a third argument is a call on nil. That is a
     // hard error in FiveM; we return another no-op instead, because a user who cannot edit the
     // resource they downloaded gains nothing from losing the whole manifest.
-    lua_pushcfunction(state,
-                      [](lua_State* inner)
-                      {
-                          lua_pushvalue(inner, lua_upvalueindex(0));
-                          return 0;
-                      });
+    lua_pushcfunction(state, IgnoredArgumentFunction);
     return 1;
 }
 
