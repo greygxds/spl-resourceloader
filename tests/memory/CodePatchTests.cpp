@@ -164,6 +164,25 @@ TEST_CASE("CodePatch: an empty or address-less patch is rejected", "[memory]")
         CodePatch::Write("TestLengthMismatch", page.GetAddress(), kOneNop, expected).HasValue());
 }
 
+TEST_CASE("CodePatch: a patch running into an unreadable page is refused", "[memory]")
+{
+    SYSTEM_INFO system = {};
+    ::GetSystemInfo(&system);
+    const size_t page = system.dwPageSize;
+    auto* memory = static_cast<uint8_t*>(
+        ::VirtualAlloc(nullptr, page * 2, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READ));
+    REQUIRE(memory != nullptr);
+    DWORD previous = 0;
+    REQUIRE(::VirtualProtect(memory + page, page, PAGE_NOACCESS, &previous) != 0);
+
+    const uintptr_t straddling = reinterpret_cast<uintptr_t>(memory) + page - 2;
+    const Result<CodePatch> patch = CodePatch::Nop("Straddle", straddling, 4);
+
+    CHECK_FALSE(patch);
+    CHECK(patch.GetError().code == ErrorCode::AccessDenied);
+    ::VirtualFree(memory, 0, MEM_RELEASE);
+}
+
 TEST_CASE("CodePatch: WriteCall points the call at the target", "[memory]")
 {
     ExecutablePage page(kOriginal);
