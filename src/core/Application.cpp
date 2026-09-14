@@ -230,11 +230,12 @@ bool Application::Bootstrap()
         .dumpFile = m_paths->crashDumpFile,
         .writeMinidump = m_config.diagnostics.writeMinidump,
         .describe = [this] { return DescribeForCrash(); },
+        .isBusy = [this] { return m_session.IsBusy(); },
         .onCrash =
             [this](const CrashReportInfo& info)
         {
-            // Only a crash while game state was changing counts against a resource; one
-            // during normal play gets a report and nothing more.
+            // Only a crash while game state was changing counts against a resource; one in our
+            // code during normal play gets a report and nothing more.
             if (m_session.IsBusy())
             {
                 m_session.RecordCrash(
