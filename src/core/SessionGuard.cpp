@@ -58,10 +58,29 @@ std::optional<std::string> ReadWholeFile(const std::filesystem::path& file)
     return std::string{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 }
 
+/// Written next to the file and renamed over it, so a crash mid-write leaves the old contents
+/// rather than a truncated file that would forget every quarantined resource.
 void WriteWholeFile(const std::filesystem::path& file, std::string_view contents)
 {
-    std::ofstream stream{file, std::ios::binary | std::ios::trunc};
-    stream << contents;
+    std::filesystem::path temporary = file;
+    temporary += ".tmp";
+    {
+        std::ofstream stream{temporary, std::ios::binary | std::ios::trunc};
+        stream << contents;
+        stream.flush();
+        if (!stream)
+        {
+            std::error_code error;
+            std::filesystem::remove(temporary, error);
+            return;
+        }
+    }
+    std::error_code error;
+    std::filesystem::rename(temporary, file, error);
+    if (error)
+    {
+        std::filesystem::remove(temporary, error);
+    }
 }
 } // namespace
 
