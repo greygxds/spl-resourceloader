@@ -18,7 +18,7 @@ namespace
 /// FiveM ModPackage.cpp:154 matches ".rpf" case-sensitively.
 [[nodiscard]] bool IsModArchive(const std::filesystem::path& file)
 {
-    return file.extension().string() == ".rpf";
+    return file.extension().native() == L".rpf";
 }
 } // namespace
 
@@ -46,20 +46,20 @@ ModsScanner::Result ModsScanner::Scan(const std::filesystem::path& modsRoot)
     }
     if (error)
     {
-        result.warnings.push_back("could not list '" + modsRoot.string() + "'");
+        result.warnings.push_back("could not list '" + util::ToUtf8(modsRoot) + "'");
         return result;
     }
 
     std::ranges::sort(archives, {}, [](const std::filesystem::path& file)
-                      { return util::ToLower(file.filename().string()); });
+                      { return util::ToLower(util::ToUtf8(file.filename())); });
 
     for (const std::filesystem::path& archive : archives)
     {
-        const std::string name = archive.stem().string();
+        const std::string name = util::ToUtf8(archive.stem());
         spl::Result<rpf::RpfReader> opened = rpf::RpfReader::Open(archive);
         if (!opened)
         {
-            result.warnings.push_back("skipping '" + archive.filename().string() +
+            result.warnings.push_back("skipping '" + util::ToUtf8(archive.filename()) +
                                       "': " + opened.GetMessage());
             continue;
         }
@@ -67,7 +67,7 @@ ModsScanner::Result ModsScanner::Scan(const std::filesystem::path& modsRoot)
             opened.GetValue().ReadFile("assembly.xml");
         if (!assembly)
         {
-            result.warnings.push_back("skipping '" + archive.filename().string() +
+            result.warnings.push_back("skipping '" + util::ToUtf8(archive.filename()) +
                                       "': no assembly.xml (" + assembly.GetMessage() + ")");
             continue;
         }
@@ -76,7 +76,7 @@ ModsScanner::Result ModsScanner::Scan(const std::filesystem::path& modsRoot)
         AssemblyResult parsed = AssemblyParser::ParseAssembly(text);
         if (parsed.fatal)
         {
-            result.warnings.push_back("skipping '" + archive.filename().string() +
+            result.warnings.push_back("skipping '" + util::ToUtf8(archive.filename()) +
                                       "': broken assembly.xml");
             continue;
         }

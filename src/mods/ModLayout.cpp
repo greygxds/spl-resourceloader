@@ -573,7 +573,7 @@ ModLayout::Result ModLayout::Build(const DiscoveredMod& mod, const std::filesyst
     spl::Result<rpf::RpfReader> opened = rpf::RpfReader::Open(mod.absolutePath);
     if (!opened)
     {
-        result.warnings.push_back("cannot open '" + mod.absolutePath.string() + "' (" +
+        result.warnings.push_back("cannot open '" + util::ToUtf8(mod.absolutePath) + "' (" +
                                   opened.GetMessage() + ")");
         finish();
         return result;
@@ -620,7 +620,8 @@ ModLayout::Result ModLayout::Build(const DiscoveredMod& mod, const std::filesyst
 
     // The game has read its startup metas before the loader runs, so the ones whose type is
     // known are loaded as data files as well.
-    std::string manifest = "-- Generated from '" + EscapeLua(mod.absolutePath.filename().string()) +
+    std::string manifest = "-- Generated from '" +
+                           EscapeLua(util::ToUtf8(mod.absolutePath.filename())) +
                            "'; do not edit.\ngame 'gta5'\n";
     for (const ModOverlay::MetaFile& meta : overlay.MetaFiles())
     {

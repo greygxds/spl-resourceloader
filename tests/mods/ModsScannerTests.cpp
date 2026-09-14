@@ -1,3 +1,5 @@
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -82,6 +84,32 @@ TEST_CASE("ModsScanner: skips broken mods with warnings", "[mods]")
     REQUIRE(scanned.mods.size() == 1);
     CHECK(scanned.mods[0].name == "good");
     CHECK(scanned.warnings.size() == 3); // corrupt, no assembly, broken xml; empty is silent
+}
+
+TEST_CASE("ModsScanner: names outside the system code page are read as UTF-8", "[mods]")
+{
+    // Cyrillic and CJK together fit no single ANSI code page, so path::string() would throw.
+    const std::u8string stem = u8"машина_车";
+    const std::u8string brokenStem = u8"сломан_坏";
+    TempDir dir;
+    dir.AddDirectory("mods");
+    const auto write = [&dir](const std::u8string& name, const std::string& contents)
+    {
+        std::ofstream stream{dir.Path() / "mods" / std::filesystem::path{name + u8".rpf"},
+                             std::ios::binary};
+        stream << contents;
+    };
+    write(stem, ModArchive(kAssembly));
+    write(brokenStem, "not an archive at all");
+
+    const ModsScanner::Result scanned = ModsScanner::Scan(dir.Path() / "mods");
+
+    const auto utf8 = [](const std::u8string& text)
+    { return std::string{reinterpret_cast<const char*>(text.data()), text.size()}; };
+    REQUIRE(scanned.mods.size() == 1);
+    CHECK(scanned.mods[0].name == utf8(stem));
+    REQUIRE(scanned.warnings.size() == 1);
+    CHECK(scanned.warnings[0].find(utf8(brokenStem)) != std::string::npos);
 }
 
 TEST_CASE("ModsScanner: a missing folder is not an error", "[mods]")
