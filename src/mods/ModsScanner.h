@@ -34,6 +34,10 @@ public:
         /// Problems worth the user's attention: unreadable archives, missing or broken
         /// assemblies.
         std::vector<std::string> warnings;
+
+        /// Archives skipped only because their extension is not spelled ".rpf" in lower case,
+        /// which FiveM does too. Worth telling the user, since the file otherwise looks right.
+        std::vector<std::string> ignoredArchives;
     };
 
     [[nodiscard]] static Result Scan(const std::filesystem::path& modsRoot);

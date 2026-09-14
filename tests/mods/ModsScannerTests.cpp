@@ -51,6 +51,7 @@ TEST_CASE("ModsScanner: finds and parses mods in file order", "[mods]")
     CHECK(scanned.mods[1].name == "zebra");
     CHECK(scanned.mods[0].package.entries.size() == 1);
     CHECK(scanned.warnings.empty());
+    CHECK(scanned.ignoredArchives == std::vector<std::string>{"Alpha.RPF"});
 }
 
 TEST_CASE("ModsScanner: reads a deflated assembly with a BOM", "[mods]")
