@@ -271,6 +271,7 @@ Result<uint32_t> MemoryBudget::ExtendStreamingMemory()
                                                    ToBytes(patch.extended), ToBytes(patch.vanilla));
             !applied)
         {
+            m_patches.RestoreAll(); // a bigger pool with the old limit is worse than neither
             return applied.GetError();
         }
         SPL_LOG_DEBUG(Hook, "Patch '{}' applied at {} ({:#x})", patch.name,
