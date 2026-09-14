@@ -208,6 +208,19 @@ TEST_CASE("LuaManifestLoader: a syntax error is reported with its line", "[manif
     REQUIRE(Mentions(result, "fxmanifest.lua:"));
 }
 
+TEST_CASE("LuaManifestLoader: an error that is not a string is still reported", "[manifest][lua]")
+{
+    const auto chunk =
+        GENERATE(as<std::string>{}, "game 'gta5'\nerror({})", "game 'gta5'\nerror()");
+
+    const ParseResult result = Run(chunk);
+
+    INFO("chunk: " << chunk);
+    REQUIRE(result.fatal);
+    REQUIRE(Mentions(result, "as an error"));
+    REQUIRE(result.document.Has("game"));
+}
+
 TEST_CASE("LuaManifestLoader: an error mid-chunk keeps what ran before it", "[manifest][lua]")
 {
     const ParseResult result = Run("game 'gta5'\nerror('boom')");

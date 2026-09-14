@@ -232,6 +232,19 @@ int GlobalIndex(lua_State* state)
     return 1;
 }
 
+/// The error on top of the stack as text. `error({})` and `error()` raise values that are not
+/// strings, which lua_tostring answers with nullptr.
+std::string ErrorMessage(lua_State* state)
+{
+    std::size_t length = 0;
+    const char* text = lua_tolstring(state, -1, &length);
+    if (text == nullptr)
+    {
+        return fmt::format("manifest raised a {} value as an error", luaL_typename(state, -1));
+    }
+    return std::string{text, length};
+}
+
 /// Opens only the libraries a manifest could reasonably want. io, os, package, debug and
 /// coroutine are never registered, so the chunk cannot reach the filesystem, spawn anything,
 /// or inspect the host.
@@ -310,7 +323,7 @@ ParseResult LoadManifestWithLua(std::string_view source, std::string_view chunkN
             ManifestDiagnostic{.severity = ManifestDiagnostic::Severity::Error,
                                .line = 0,
                                .column = 0,
-                               .message = fmt::format("{}", lua_tostring(state, -1))});
+                               .message = ErrorMessage(state)});
         lua_close(state);
         return result;
     }
@@ -322,7 +335,7 @@ ParseResult LoadManifestWithLua(std::string_view source, std::string_view chunkN
             ManifestDiagnostic{.severity = ManifestDiagnostic::Severity::Error,
                                .line = 0,
                                .column = 0,
-                               .message = fmt::format("{}", lua_tostring(state, -1))});
+                               .message = ErrorMessage(state)});
     }
 
     lua_close(state);
