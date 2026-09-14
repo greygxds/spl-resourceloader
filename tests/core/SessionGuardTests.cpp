@@ -140,3 +140,17 @@ TEST_CASE("SessionGuard: an idle session leaves no marker", "[core]")
     SessionGuard next = MakeGuard(dir);
     CHECK(next.Begin(SafeMode::Auto).quarantined == std::vector<std::string>{"late"});
 }
+
+TEST_CASE("SessionGuard: state.toml is replaced whole, with no temporary left behind", "[core]")
+{
+    const spl::tests::TempDir dir;
+    SessionGuard guard = MakeGuard(dir);
+    static_cast<void>(guard.Begin(SafeMode::Auto));
+
+    guard.Quarantine("first");
+    guard.Quarantine("second"); // renamed over an existing state.toml
+
+    CHECK_FALSE(std::filesystem::exists(dir.Path() / "state.toml.tmp"));
+    SessionGuard next = MakeGuard(dir);
+    CHECK(next.Begin(SafeMode::Auto).quarantined == std::vector<std::string>{"first", "second"});
+}
