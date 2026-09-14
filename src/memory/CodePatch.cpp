@@ -17,16 +17,31 @@ constexpr ptrdiff_t kRel32Reach = 0x7FFF0000;
 /// "jmp qword ptr [rip+0]" followed by the absolute target: 14 bytes, no register touched.
 constexpr size_t kStubLengthBytes = 14;
 
+[[nodiscard]] bool IsReadable(const MEMORY_BASIC_INFORMATION& info)
+{
+    constexpr DWORD kReadable = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY |
+                                PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    return info.State == MEM_COMMIT && (info.Protect & PAGE_GUARD) == 0 &&
+           (info.Protect & kReadable) != 0;
+}
+
+/// Every region the range touches has to be readable: a patch can straddle a region boundary.
 [[nodiscard]] bool ReadCode(uintptr_t address, size_t sizeBytes, std::vector<uint8_t>& out)
 {
-    MEMORY_BASIC_INFORMATION info = {};
-    if (::VirtualQuery(reinterpret_cast<void*>(address), &info, sizeof(info)) == 0)
+    const uintptr_t end = address + sizeBytes;
+    if (end < address)
     {
         return false;
     }
-    if (info.State != MEM_COMMIT)
+    for (uintptr_t cursor = address; cursor < end;)
     {
-        return false;
+        MEMORY_BASIC_INFORMATION info = {};
+        if (::VirtualQuery(reinterpret_cast<void*>(cursor), &info, sizeof(info)) == 0 ||
+            !IsReadable(info))
+        {
+            return false;
+        }
+        cursor = reinterpret_cast<uintptr_t>(info.BaseAddress) + info.RegionSize;
     }
     out.assign(reinterpret_cast<const uint8_t*>(address),
                reinterpret_cast<const uint8_t*>(address) + sizeBytes);
