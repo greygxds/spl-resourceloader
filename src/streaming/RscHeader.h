@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+#include "util/FileTree.h"
+
 namespace spl::streaming
 {
 /// The 16-byte header every compiled RAGE resource starts with: magic, resource version and
@@ -50,6 +52,15 @@ struct RscHeader
 /// nothing else.
 [[nodiscard]] std::optional<RscHeader> ReadRscHeader(const std::filesystem::path& file,
                                                      std::string* error = nullptr);
+
+/// The same, read through a file tree.
+[[nodiscard]] std::optional<RscHeader> ReadRscHeader(const util::IFileTree& files,
+                                                     const std::filesystem::path& file,
+                                                     std::string* error = nullptr);
+
+/// The header at the start of bytes; Format::None when there is no RSC or PSO magic, or fewer
+/// than 16 bytes.
+[[nodiscard]] RscHeader ParseRscHeader(std::string_view bytes);
 
 /// Decodes one RSC7 page-flag word into bytes. The word packs nine page counts, each page
 /// twice the size of the next, plus a 4-bit shift that scales all of them.

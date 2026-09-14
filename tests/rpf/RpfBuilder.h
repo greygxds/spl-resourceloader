@@ -28,6 +28,24 @@ public:
         m_files.emplace_back(File{std::string{path}, std::string{contents}, true});
     }
 
+    /// A resource too large for the size field: stored with 0xFFFFFF there, its flags in the
+    /// table, and a 16-byte size header in place of RSC7 (CodeWalker RpfResourceFileEntry).
+    /// Returns the bytes the archive stores for it.
+    std::string AddLargeResource(std::string_view path, uint32_t virtualFlags,
+                                 uint32_t physicalFlags, std::string_view payload)
+    {
+        const auto total = static_cast<uint32_t>(16 + payload.size());
+        std::string stored(16, '\0');
+        stored[7] = static_cast<char>(total & 0xFF);
+        stored[14] = static_cast<char>((total >> 8) & 0xFF);
+        stored[5] = static_cast<char>((total >> 16) & 0xFF);
+        stored[2] = static_cast<char>((total >> 24) & 0xFF);
+        stored += payload;
+        m_files.emplace_back(
+            File{std::string{path}, stored, false, true, virtualFlags, physicalFlags});
+        return stored;
+    }
+
     [[nodiscard]] std::string Build() const
     {
         struct Node
@@ -35,6 +53,9 @@ public:
             bool isDirectory = true;
             std::string contents;
             bool compressed = false;
+            bool largeResource = false;
+            uint32_t virtualFlags = 0;
+            uint32_t physicalFlags = 0;
             std::map<std::string, Node> children; // byte order, like the on-disk table
         };
         Node root;
@@ -54,6 +75,9 @@ public:
                     child.isDirectory = false;
                     child.contents = file.contents;
                     child.compressed = file.compressed;
+                    child.largeResource = file.largeResource;
+                    child.virtualFlags = file.virtualFlags;
+                    child.physicalFlags = file.physicalFlags;
                     break;
                 }
                 node = &child;
@@ -132,8 +156,8 @@ public:
             // OpenIV shape, verified against real packages: stored files carry their
             // on-disk size with the stored bit set; deflated files carry the compressed
             // size with it clear and the decompressed size in virtFlags.
-            uint64_t packed = static_cast<uint64_t>(nameOffsets[index]) |
-                              (static_cast<uint64_t>(payload.size()) << 16) |
+            const uint64_t sizeField = entry.node->largeResource ? 0xFFFFFFull : payload.size();
+            uint64_t packed = static_cast<uint64_t>(nameOffsets[index]) | (sizeField << 16) |
                               (static_cast<uint64_t>(sector) << 40);
             if (!entry.node->compressed)
             {
@@ -143,8 +167,16 @@ public:
             {
                 out.push_back(static_cast<char>((packed >> shift) & 0xFF));
             }
-            appendU32(out, static_cast<uint32_t>(entry.node->contents.size()));
-            appendU32(out, 0);
+            if (entry.node->largeResource)
+            {
+                appendU32(out, entry.node->virtualFlags);
+                appendU32(out, entry.node->physicalFlags);
+            }
+            else
+            {
+                appendU32(out, static_cast<uint32_t>(entry.node->contents.size()));
+                appendU32(out, 0);
+            }
             data += payload;
             data.append((kSectorBytes - data.size() % kSectorBytes) % kSectorBytes, '\0');
         }
@@ -161,6 +193,9 @@ private:
         std::string path;
         std::string contents;
         bool compressed = false;
+        bool largeResource = false;
+        uint32_t virtualFlags = 0;
+        uint32_t physicalFlags = 0;
     };
 
     /// Raw deflate, matching what the reader inflates with -15.

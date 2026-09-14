@@ -127,6 +127,30 @@ TEST_CASE("ConfigLoader: an out-of-range integer warns and keeps the default", "
     REQUIRE(Mentions(result.diagnostics.warnings, "asset_size_warning_mib"));
 }
 
+TEST_CASE("ConfigLoader: the memory table is read and defaults to off", "[config]")
+{
+    const LoaderConfig defaults = ConfigLoader::Parse("").config;
+    REQUIRE_FALSE(defaults.memory.extendedTextureBudget);
+    REQUIRE(defaults.memory.textureBudgetScale == 0);
+    REQUIRE_FALSE(defaults.memory.extendedStreamingMemory);
+
+    const ConfigLoadResult result =
+        ConfigLoader::Parse("[memory]\nextended_texture_budget = true\ntexture_budget_scale = 12\n"
+                            "extended_streaming_memory = true\n");
+    REQUIRE(result.diagnostics.IsEmpty());
+    REQUIRE(result.config.memory.extendedTextureBudget);
+    REQUIRE(result.config.memory.textureBudgetScale == 12);
+    REQUIRE(result.config.memory.extendedStreamingMemory);
+}
+
+TEST_CASE("ConfigLoader: a texture budget scale above 12 warns and keeps the default", "[config]")
+{
+    const ConfigLoadResult result = ConfigLoader::Parse("[memory]\ntexture_budget_scale = 13\n");
+
+    REQUIRE(result.config.memory.textureBudgetScale == 0);
+    REQUIRE(Mentions(result.diagnostics.warnings, "memory.texture_budget_scale"));
+}
+
 TEST_CASE("ConfigLoader: auto_request_ytyp is read and defaults to off", "[config]")
 {
     REQUIRE_FALSE(ConfigLoader::Parse("").config.streaming.autoRequestYtyp);
@@ -283,16 +307,22 @@ TEST_CASE("ConfigLoader: safe_mode accepts auto, off and a boolean", "[config]")
     CHECK(Mentions(bad.diagnostics.warnings, "always"));
 }
 
-TEST_CASE("ConfigLoader: allow_unverified_builds and write_minidump are read", "[config]")
+TEST_CASE("ConfigLoader: write_minidump is read", "[config]")
 {
-    const ConfigLoadResult result = ConfigLoader::Parse(
-        "[loader]\nallow_unverified_builds = false\n[diagnostics]\nwrite_minidump = true\n");
+    const ConfigLoadResult result = ConfigLoader::Parse("[diagnostics]\nwrite_minidump = true\n");
 
     REQUIRE(result.diagnostics.IsEmpty());
-    CHECK_FALSE(result.config.loader.allowUnverifiedBuilds);
     CHECK(result.config.diagnostics.writeMinidump);
-    CHECK(LoaderConfig{}.loader.allowUnverifiedBuilds);
     CHECK_FALSE(LoaderConfig{}.diagnostics.writeMinidump);
+}
+
+TEST_CASE("ConfigLoader: resources.enabled is read and defaults to on", "[config]")
+{
+    CHECK(LoaderConfig{}.resources.enabled);
+
+    const ConfigLoadResult result = ConfigLoader::Parse("[resources]\nenabled = false\n");
+    REQUIRE(result.diagnostics.IsEmpty());
+    CHECK_FALSE(result.config.resources.enabled);
 }
 
 TEST_CASE("ConfigLoader: early_init is read and on by default", "[config]")

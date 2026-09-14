@@ -15,10 +15,12 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include "core/Result.h"
 #include "resource/Resource.h"
 #include "streaming/AssetType.h"
 #include "streaming/RscHeader.h"
 #include "streaming/StreamAsset.h"
+#include "util/FileTree.h"
 #include "util/Strings.h"
 
 namespace spl::streaming
@@ -45,37 +47,32 @@ struct DirectoryEntries
 {
     std::vector<std::filesystem::path> directories;
 
-    /// Entries rather than paths: on Windows the listing already carries each file's size and
-    /// write time, so keeping them saves two filesystem calls per asset.
-    std::vector<std::filesystem::directory_entry> files;
+    /// Entries rather than paths: the listing already carries each file's size and write time.
+    std::vector<util::FileTreeEntry> files;
 };
 
 /// One directory level, each list sorted case-insensitively by name. Sorting is what makes
 /// "the first path wins" a rule rather than a coin toss.
-DirectoryEntries ListSorted(const std::filesystem::path& directory,
+DirectoryEntries ListSorted(const util::IFileTree& tree, const std::filesystem::path& directory,
                             std::vector<std::string>& warnings, std::string_view resourceName)
 {
-    std::error_code error;
-    std::filesystem::directory_iterator iterator{
-        directory, std::filesystem::directory_options::skip_permission_denied, error};
-    if (error)
+    Result<std::vector<util::FileTreeEntry>> listed = tree.List(directory);
+    if (!listed)
     {
-        warnings.push_back(fmt::format("{}: cannot read '{}': {}", resourceName,
-                                       util::ToUtf8Generic(directory), error.message()));
+        warnings.push_back(fmt::format("{}: {}", resourceName, listed.GetMessage()));
         return {};
     }
 
     DirectoryEntries entries;
-    for (const std::filesystem::directory_entry& entry : iterator)
+    for (util::FileTreeEntry& entry : listed.GetValue())
     {
-        std::error_code entryError;
-        if (entry.is_directory(entryError))
+        if (entry.stat.isDirectory)
         {
-            entries.directories.push_back(entry.path());
+            entries.directories.push_back(std::move(entry.path));
         }
-        else if (entry.is_regular_file(entryError))
+        else
         {
-            entries.files.push_back(entry);
+            entries.files.push_back(std::move(entry));
         }
     }
 
@@ -86,7 +83,7 @@ DirectoryEntries ListSorted(const std::filesystem::path& directory,
                util::ToLower(util::ToUtf8(right.filename()));
     };
     std::ranges::sort(entries.directories, byLoweredName);
-    std::ranges::sort(entries.files, byLoweredName, &std::filesystem::directory_entry::path);
+    std::ranges::sort(entries.files, byLoweredName, &util::FileTreeEntry::path);
     return entries;
 }
 
@@ -109,23 +106,12 @@ std::string_view WithoutExtension(std::string_view fileName)
     return dot == std::string_view::npos ? fileName : fileName.substr(0, dot);
 }
 
-/// Fills in what the filesystem knows about the file. Size and time feed the size
-/// checks and let a changed file be noticed.
-void ReadFileFacts(StreamAsset& asset, const std::filesystem::directory_entry& entry)
+/// Fills in what the listing knows about the file. Size and time feed the size checks and let a
+/// changed file be noticed.
+void ReadFileFacts(StreamAsset& asset, const util::FileTreeEntry& entry)
 {
-    std::error_code error;
-    const std::uintmax_t size = entry.file_size(error);
-    if (!error)
-    {
-        asset.fileSizeBytes = static_cast<uint64_t>(size);
-    }
-
-    std::error_code timeError;
-    const std::filesystem::file_time_type written = entry.last_write_time(timeError);
-    if (!timeError)
-    {
-        asset.lastWriteTime = written;
-    }
+    asset.fileSizeBytes = entry.stat.sizeBytes;
+    asset.lastWriteTime = entry.stat.lastWriteTime;
 }
 
 void Skip(StreamAsset& asset, AssetDisposition disposition, std::string reason)
@@ -136,11 +122,11 @@ void Skip(StreamAsset& asset, AssetDisposition disposition, std::string reason)
 
 /// Reads and validates the RSC header of an asset whose type is supposed to have one. Only
 /// the missing-header case can take the asset out of the plan; everything else is advice.
-void ValidateRscHeader(StreamAsset& asset, const AssetTypeInfo& info,
+void ValidateRscHeader(const util::IFileTree& tree, StreamAsset& asset, const AssetTypeInfo& info,
                        const AssetScanner::Options& options, std::vector<std::string>& warnings)
 {
     std::string error;
-    asset.rsc = ReadRscHeader(asset.absolutePath, &error);
+    asset.rsc = ReadRscHeader(tree, asset.absolutePath, &error);
     if (!asset.rsc)
     {
         Skip(asset, AssetDisposition::SkippedInvalid, "the file could not be read");
@@ -236,9 +222,10 @@ AssetScanner::Result AssetScanner::Scan(const resource::Resource& resource,
 {
     Result result;
 
+    const util::IFileTree& tree = resource.GetFiles();
     const std::filesystem::path streamRoot = resource.GetStreamPath();
-    std::error_code rootError;
-    if (!std::filesystem::is_directory(streamRoot, rootError))
+    if (const std::optional<util::FileTreeStat> root = tree.Stat(streamRoot);
+        !root || !root->isDirectory)
     {
         return result; // no stream/ folder: a resource may carry nothing but data files
     }
@@ -265,7 +252,7 @@ AssetScanner::Result AssetScanner::Scan(const resource::Resource& resource,
             continue;
         }
 
-        const DirectoryEntries entries = ListSorted(current, result.warnings, resourceName);
+        const DirectoryEntries entries = ListSorted(tree, current, result.warnings, resourceName);
 
         for (const std::filesystem::path& directory : entries.directories)
         {
@@ -279,9 +266,9 @@ AssetScanner::Result AssetScanner::Scan(const resource::Resource& resource,
             pending.push(directory);
         }
 
-        for (const std::filesystem::directory_entry& entry : entries.files)
+        for (const util::FileTreeEntry& entry : entries.files)
         {
-            const std::filesystem::path& file = entry.path();
+            const std::filesystem::path& file = entry.path;
             if (IsIgnoredStreamFile(file))
             {
                 result.notes.push_back(
@@ -360,7 +347,7 @@ AssetScanner::Result AssetScanner::Scan(const resource::Resource& resource,
             }
             else if (info.expectsRscHeader)
             {
-                ValidateRscHeader(asset, info, options, result.warnings);
+                ValidateRscHeader(tree, asset, info, options, result.warnings);
             }
 
             result.assets.push_back(std::move(asset));

@@ -1,16 +1,18 @@
 #include "streaming/RscHeader.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <optional>
 #include <string>
 #include <string_view>
 
 #include <spdlog/fmt/fmt.h>
 
+#include "core/Result.h"
+#include "util/FileTree.h"
 #include "util/Strings.h"
 
 namespace spl::streaming
@@ -104,27 +106,16 @@ uint64_t DecodeRsc7PageFlags(uint32_t flags)
     return basePages * (static_cast<uint64_t>(kBasePageSizeBytes) << scale);
 }
 
-std::optional<RscHeader> ReadRscHeader(const std::filesystem::path& file, std::string* error)
+RscHeader ParseRscHeader(std::string_view bytes)
 {
-    std::ifstream stream{file, std::ios::binary};
-    if (!stream)
+    if (bytes.size() < kHeaderSizeBytes)
     {
-        if (error != nullptr)
-        {
-            *error = fmt::format("'{}' could not be opened", util::ToUtf8Generic(file));
-        }
-        return std::nullopt;
+        return RscHeader{}; // too short to hold a header, so it cannot be a resource
     }
+    std::array<char, kHeaderSizeBytes> header{};
+    std::copy_n(bytes.data(), kHeaderSizeBytes, header.data());
 
-    std::array<char, kHeaderSizeBytes> bytes{};
-    stream.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-    if (stream.gcount() != static_cast<std::streamsize>(bytes.size()))
-    {
-        // Too short to hold a header, so it cannot be a resource. Not an I/O failure.
-        return RscHeader{};
-    }
-
-    const uint32_t magic = ReadLittleEndian32(bytes, 0);
+    const uint32_t magic = ReadLittleEndian32(header, 0);
     if (magic == kMagicPso)
     {
         return RscHeader{.format = RscHeader::Format::Pso};
@@ -137,9 +128,29 @@ std::optional<RscHeader> ReadRscHeader(const std::filesystem::path& file, std::s
     }
 
     return RscHeader{.format = *format,
-                     .version = ReadLittleEndian32(bytes, 4),
-                     .virtualFlags = ReadLittleEndian32(bytes, 8),
-                     .physicalFlags = ReadLittleEndian32(bytes, 12)};
+                     .version = ReadLittleEndian32(header, 4),
+                     .virtualFlags = ReadLittleEndian32(header, 8),
+                     .physicalFlags = ReadLittleEndian32(header, 12)};
+}
+
+std::optional<RscHeader> ReadRscHeader(const std::filesystem::path& file, std::string* error)
+{
+    return ReadRscHeader(util::DiskFileTree::Instance(), file, error);
+}
+
+std::optional<RscHeader> ReadRscHeader(const util::IFileTree& files,
+                                       const std::filesystem::path& file, std::string* error)
+{
+    const Result<std::string> bytes = files.Read(file, kHeaderSizeBytes);
+    if (!bytes)
+    {
+        if (error != nullptr)
+        {
+            *error = bytes.GetMessage();
+        }
+        return std::nullopt;
+    }
+    return ParseRscHeader(bytes.GetValue());
 }
 
 std::string_view ToString(RscHeader::Format format)

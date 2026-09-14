@@ -67,6 +67,7 @@
     <!-- A rage/ type with no signature or game call in it, so the tests can link it. -->
     <ClCompile Include="$(SplRoot)src\rage\LooseResourceDevice.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\ForcedDevice.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\ModArchiveDevice.cpp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -81,6 +82,7 @@
     <ClInclude Include="$(SplRoot)src\memory\PatternScanner.h" />
     <ClInclude Include="$(SplRoot)src\rage\LooseResourceDevice.h" />
     <ClInclude Include="$(SplRoot)src\rage\ForcedDevice.h" />
+    <ClInclude Include="$(SplRoot)src\rage\ModArchiveDevice.h" />
   </ItemGroup>
 
   <ItemGroup>

@@ -16,7 +16,7 @@ namespace spl
 /// A folder of a mod mounted over one of the game's mount points.
 struct OverlayMount
 {
-    std::filesystem::path folder; ///< "<mods cache>/<mod>/common"
+    std::filesystem::path folder; ///< "<mods folder>/<mod>/common", not on disk
     std::string mountPoint;       ///< "common:/"
 };
 

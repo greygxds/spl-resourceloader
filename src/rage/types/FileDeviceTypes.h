@@ -47,14 +47,39 @@ constexpr size_t kSlotResolvePath = 29; ///< FiveM's m_xy(buffer, length, path)
 constexpr size_t kSlotTruncate = 30;
 constexpr size_t kSlotGetFileAttributes = 31;
 constexpr size_t kSlotSetFileAttributes = 33;
+constexpr size_t kSlotUnknown34 =
+    34; ///< FiveM's m_yx; its VFS adapter answers 2 (RageVFS.cpp:96-99)
+constexpr size_t kSlotReadFull = 35;
 constexpr size_t kSlotWriteFull = 36;
 constexpr size_t kSlotGetResourceVersion = 37;
+constexpr size_t kSlotUnknown40 =
+    40; ///< FiveM's m_zx, commented "return 0x40000000" (fiDevice.h:125)
+constexpr size_t kSlotIsCollection = 41;
+constexpr size_t kSlotGetCollection = 43; ///< FiveM's comment: "return this" (fiDevice.h:131)
 constexpr size_t kSlotGetCollectionId = 45;
 constexpr size_t kSlotGetName = 46; ///< diagnostics only: verify it before trusting a build
 
 /// Slots FiveM's header declares. A build may have more at the end.
 constexpr size_t kKnownSlotCount = 47;
 } // namespace FileDeviceLayout
+
+/// rage::fiFindData, as FiveM's rage-device-five fiDevice.h declares it.
+struct FindDataView
+{
+    char fileName[256];  // +0x000
+    uint64_t fileSize;   // +0x100
+    uint64_t writeTime;  // +0x108
+    uint32_t attributes; // +0x110
+};
+static_assert(offsetof(FindDataView, fileSize) == 0x100);
+static_assert(offsetof(FindDataView, attributes) == 0x110);
+
+/// rage::ResourceFlags, what GetResourceVersion fills in: the two page-flag words.
+struct ResourceFlagsView
+{
+    uint32_t virtualFlags;  // +0x00
+    uint32_t physicalFlags; // +0x04
+};
 
 /// fiCollection::RawEntry, one loose file of pgRawStreamer. FiveM
 /// gta-streaming-five/include/fiCollectionWrapper.h: a 16-byte packfile entry, a timestamp and

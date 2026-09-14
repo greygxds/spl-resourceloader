@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -26,7 +27,8 @@
 #include "core/Version.h"
 #include "hooking/HookManager.h"
 #include "logging/Logger.h"
-#include "mods/ModExtractor.h"
+#include "mods/ModCatalog.h"
+#include "mods/ModLayout.h"
 #include "mods/ModsScanner.h"
 #include "rage/GameBuild.h"
 #include "rage/RageBridge.h"
@@ -55,6 +57,40 @@ void ReplayDiagnostics(const config::ConfigDiagnostics& diagnostics)
     {
         SPL_LOG_WARNING(Config, warning);
     }
+}
+
+/// Loaders before this one copied every mod into <data>/mods_cache. Mods are read from their
+/// archives now, so the copy is only disk space: removed once, and reported.
+void RemoveOldModsCache(const std::filesystem::path& dataDir)
+{
+    const std::filesystem::path cache = dataDir / "mods_cache";
+    std::error_code error;
+    if (!std::filesystem::is_directory(cache, error))
+    {
+        return;
+    }
+    uint64_t sizeBytes = 0;
+    for (std::filesystem::recursive_directory_iterator entry{cache, error}, end;
+         entry != end && !error; entry.increment(error))
+    {
+        std::error_code sizeError;
+        if (entry->is_regular_file(sizeError))
+        {
+            sizeBytes += entry->file_size(sizeError);
+        }
+    }
+    error.clear();
+    std::filesystem::remove_all(cache, error);
+    if (error)
+    {
+        SPL_LOG_WARNING(Mods,
+                        "The old mods cache '{}' could not be removed ({}); it is no longer "
+                        "used and can be deleted",
+                        util::ToUtf8Generic(cache), error.message());
+        return;
+    }
+    SPL_LOG_INFO(Mods, "Removed the old mods cache ({} MiB): mods are read from their archives now",
+                 sizeBytes / (1024 * 1024));
 }
 
 int64_t MillisecondsSince(std::chrono::steady_clock::time_point start)
@@ -124,6 +160,10 @@ bool Application::Initialize()
                                   "start; registering from story mode instead");
         }
         WarnAboutLevelMetas();
+        if (!m_startedEarly)
+        {
+            WarnAboutMemoryBudgets();
+        }
         ConnectToGame(false);
     }
 
@@ -234,7 +274,7 @@ EarlyStart Application::TryStartEarly()
         return EarlyStart::NotReady; // GTA5.exe has not decrypted its code yet
     }
 
-    if (Result<void> resolved = m_bridge.Resolve(m_config); !resolved)
+    if (Result<void> resolved = m_bridge.Resolve(); !resolved)
     {
         SPL_LOG_WARNING(Core, "Starting with story mode instead of with the game: {}",
                         resolved.GetMessage());
@@ -255,6 +295,7 @@ EarlyStart Application::TryStartEarly()
 
     m_startedEarly = true;
     SPL_LOG_INFO(Core, "Starting with the game (early_init)");
+    ExtendMemoryBudgets();
     if (!m_bridge.Init().HasInitialMountHook() && !m_modOverlays.empty())
     {
         SPL_LOG_WARNING(Mods, "Mod files are mounted only once the session starts, after the game "
@@ -406,6 +447,47 @@ rage::LevelMetas Application::CollectLevelMetas() const
     return metas;
 }
 
+void Application::ExtendMemoryBudgets()
+{
+    const config::MemorySettings& settings = m_config.memory;
+    if (settings.extendedTextureBudget)
+    {
+        if (const Result<uint64_t> extended =
+                m_bridge.Memory().ExtendTextureBudget(settings.textureBudgetScale);
+            !extended)
+        {
+            SPL_LOG_WARNING(Core, "The texture budget was not extended: {}", extended.GetMessage());
+        }
+        else
+        {
+            SPL_LOG_INFO(Core, "Texture budget extended to {:.1f} GiB (scale {})",
+                         static_cast<double>(extended.GetValue()) / (1024.0 * 1024.0 * 1024.0),
+                         settings.textureBudgetScale);
+        }
+    }
+    if (settings.extendedStreamingMemory)
+    {
+        if (const Result<uint32_t> extended = m_bridge.Memory().ExtendStreamingMemory(); !extended)
+        {
+            SPL_LOG_WARNING(Core, "Streaming memory was not extended: {}", extended.GetMessage());
+        }
+        else
+        {
+            SPL_LOG_INFO(Core, "Streaming memory extended to {:.1f} GiB",
+                         static_cast<double>(extended.GetValue()) / (1024.0 * 1024.0 * 1024.0));
+        }
+    }
+}
+
+void Application::WarnAboutMemoryBudgets() const
+{
+    if (m_config.memory.extendedTextureBudget || m_config.memory.extendedStreamingMemory)
+    {
+        SPL_LOG_WARNING(Core, "The [memory] extensions are not applied; they need the loader to "
+                              "start with the game (loader.early_init)");
+    }
+}
+
 void Application::WarnAboutLevelMetas() const
 {
     for (const resource::Resource& resource : m_resources.GetResources())
@@ -469,12 +551,13 @@ bool Application::ApplySessionStartup(const SessionStartup& startup)
 
 void Application::DiscoverMods(std::span<const std::string> quarantined)
 {
+    RemoveOldModsCache(m_paths->dataDir);
     if (!m_config.mods.enabled)
     {
         return;
     }
-    mods::ModsScanner::Result scanned =
-        mods::ModsScanner::Scan(m_paths->ResolveUserPath(m_config.paths.mods));
+    const std::filesystem::path modsFolder = m_paths->ResolveUserPath(m_config.paths.mods);
+    mods::ModsScanner::Result scanned = mods::ModsScanner::Scan(modsFolder);
     for (const std::string& warning : scanned.warnings)
     {
         SPL_LOG_WARNING(Mods, warning);
@@ -483,15 +566,7 @@ void Application::DiscoverMods(std::span<const std::string> quarantined)
     {
         return;
     }
-    const std::filesystem::path cacheRoot = m_paths->dataDir / "mods_cache";
-    if (const Result<void>& prepared = mods::ModExtractor::PruneCache(cacheRoot, scanned.mods);
-        !prepared)
-    {
-        SPL_LOG_ERROR(Mods, "{}", prepared.GetMessage());
-        return;
-    }
 
-    // After pruning, so a disabled mod keeps its cache and is not extracted again once re-enabled.
     const std::size_t discovered = scanned.mods.size();
     const mods::ModsScanner::Selection selection =
         mods::ModsScanner::Select(scanned.mods, m_config.mods);
@@ -512,56 +587,57 @@ void Application::DiscoverMods(std::span<const std::string> quarantined)
         gameBuild = detected->build;
     }
 
+    // A mod's resource is rooted in the mods folder under its own name, a folder that does not
+    // exist: its files are read from the archive next to it.
     std::vector<resource::ResourceCandidate> candidates;
-    std::vector<std::pair<std::string, mods::ModExtractor::Result>> extractedMods;
-    uint32_t extractedFiles = 0;
-    std::size_t reused = 0;
+    std::vector<std::pair<std::string, mods::ModLayout::Result>> laidOut;
+    std::size_t mappedFiles = 0;
     for (const mods::DiscoveredMod& mod : scanned.mods)
     {
-        mods::ModExtractor::Result extracted =
-            mods::ModExtractor::Extract(mod, cacheRoot, gameBuild);
-        for (const std::string& warning : extracted.warnings)
+        mods::ModLayout::Result layout = mods::ModLayout::Build(mod, modsFolder, gameBuild);
+        for (const std::string& warning : layout.warnings)
         {
             SPL_LOG_WARNING(Mods, warning);
         }
-        reused += extracted.reused ? 1 : 0;
-        extractedFiles += extracted.reused ? 0 : extracted.extractedFiles;
         candidates.push_back(
             resource::ResourceCandidate{.name = mod.name,
-                                        .root = extracted.root,
-                                        .manifestPath = extracted.root / "fxmanifest.lua",
+                                        .root = layout.root,
+                                        .manifestPath = layout.root / "fxmanifest.lua",
                                         .manifestKind = resource::ManifestKind::FxManifest,
-                                        .isMod = true});
-        extractedMods.emplace_back(mod.name, std::move(extracted));
+                                        .isMod = true,
+                                        .files = layout.files});
+        laidOut.emplace_back(mod.name, std::move(layout));
     }
     const std::vector<std::string> kept =
         m_resources.Adopt(m_config, std::move(candidates), quarantined);
-    std::vector<mods::ModExtractor::Result> keptResults;
+    std::vector<mods::ModLayout::Result> keptResults;
     for (const std::string& name : kept)
     {
         SPL_LOG_DEBUG(Mods, "Found mod: {}", name);
         const auto mod =
-            std::ranges::find(extractedMods, name, [](const auto& pair) { return pair.first; });
-        if (mod != extractedMods.end())
+            std::ranges::find(laidOut, name, [](const auto& pair) { return pair.first; });
+        if (mod != laidOut.end())
         {
             m_modOverlays.insert(m_modOverlays.end(), mod->second.overlays.begin(),
                                  mod->second.overlays.end());
+            mappedFiles += mod->second.files->GetFiles().size();
+            m_modCatalog.Add(mod->second.files);
             keptResults.push_back(std::move(mod->second));
         }
     }
     // Only now is every half of a DLC split across mods known.
-    for (const std::string& warning : mods::ModExtractor::ReportUnresolvedDlcFiles(keptResults))
+    for (const std::string& warning : mods::ModLayout::ReportUnresolvedDlcFiles(keptResults))
     {
         SPL_LOG_WARNING(Mods, warning);
     }
     if (!kept.empty())
     {
-        m_modsCacheRoot = cacheRoot;
+        m_modsRoot = modsFolder;
     }
     SPL_LOG_DEBUG(Mods,
-                  "Discovered {} user mods ({} disabled, {} kept, {} unchanged since the last "
-                  "launch, {} files extracted)",
-                  discovered, selection.disabled.size(), kept.size(), reused, extractedFiles);
+                  "Discovered {} user mods ({} disabled, {} kept, {} files read from their "
+                  "archives)",
+                  discovered, selection.disabled.size(), kept.size(), mappedFiles);
 }
 
 void Application::ConnectToGame(bool insideGameStartup)
@@ -619,22 +695,22 @@ void Application::MountGameRoots()
     {
         SPL_LOG_ERROR(Rage, "The resources folder was not mounted: {}", mounted.GetMessage());
     }
-    if (m_modsCacheRoot.empty())
+    if (m_modsRoot.empty())
     {
         return;
     }
     // A failed mount leaves mod assets to fail registration one by one, each naming the missing
     // mount, rather than silently loading a half-modded game.
-    if (Result<void> mounted = m_bridge.Files().MountModsRoot(m_modsCacheRoot); !mounted)
+    if (Result<void> mounted = m_bridge.Files().MountModsRoot(m_modsRoot, m_modCatalog); !mounted)
     {
-        SPL_LOG_ERROR(Mods, "The mods cache was not mounted: {}", mounted.GetMessage());
+        SPL_LOG_ERROR(Mods, "The mods were not mounted: {}", mounted.GetMessage());
     }
     MountModOverlays();
 }
 
 void Application::CheckModOverlays() const
 {
-    for (const mods::ModExtractor::OverlayRoot& overlay : m_modOverlays)
+    for (const mods::ModLayout::OverlayRoot& overlay : m_modOverlays)
     {
         const std::string path = overlay.mountPoint + overlay.probeFile;
         if (m_bridge.IsReady() && !m_bridge.Files().IsServedByOverlay(path))
@@ -649,10 +725,11 @@ void Application::CheckModOverlays() const
 
 void Application::MountModOverlays()
 {
-    for (const mods::ModExtractor::OverlayRoot& overlay : m_modOverlays)
+    for (const mods::ModLayout::OverlayRoot& overlay : m_modOverlays)
     {
-        const Result<bool> mounted =
-            m_bridge.Files().MountOverlay(overlay.folder, overlay.mountPoint, overlay.probeFile);
+        const Result<bool> mounted = m_bridge.Files().MountOverlay(
+            m_modCatalog, util::ToUtf8Generic(overlay.folder.lexically_relative(m_modsRoot)),
+            overlay.mountPoint, overlay.probeFile);
         if (!mounted)
         {
             SPL_LOG_ERROR(Mods, "'{}' was not mounted over '{}': {}", util::ToUtf8(overlay.folder),
@@ -776,7 +853,7 @@ void Application::LogLoadSummary()
     m_summaryLogged = true;
 
     std::vector<OverlayMount> overlays;
-    for (const mods::ModExtractor::OverlayRoot& overlay : m_modOverlays)
+    for (const mods::ModLayout::OverlayRoot& overlay : m_modOverlays)
     {
         overlays.push_back(
             OverlayMount{.folder = overlay.folder, .mountPoint = overlay.mountPoint});
@@ -827,6 +904,16 @@ void Application::LogLoadSummary()
         break;
     }
     SPL_LOG_INFO(Streaming, "Ready in {:.1f} s{}", static_cast<double>(totalMs) / 1000.0, maps);
+    if (const std::vector<std::size_t> slots = m_bridge.Files().GetUnexpectedModDeviceSlots();
+        !slots.empty())
+    {
+        std::string list;
+        for (const std::size_t slot : slots)
+        {
+            list += list.empty() ? fmt::format("{}", slot) : fmt::format(", {}", slot);
+        }
+        SPL_LOG_DEBUG(Mods, "The game called mod device slots nothing was known to call: {}", list);
+    }
     SPL_LOG_DEBUG(Core, "Timings: discovery and plan {} ms, signatures {} ms, bridge {} ms; {}",
                   m_discoveryMs, m_bridge.GetSignatures().durationMs, m_bridgeMs, stages);
 }

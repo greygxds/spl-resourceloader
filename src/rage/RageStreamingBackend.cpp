@@ -64,16 +64,6 @@ Result<void> RageStreamingBackend::PrepareResourceRoot(const std::filesystem::pa
     return m_bridge->Files().MountResourcesRoot(root);
 }
 
-Result<void> RageStreamingBackend::PrepareModsRoot(const std::filesystem::path& root)
-{
-    if (!m_bridge->IsReady())
-    {
-        return MakeError(ErrorCode::Unavailable, "the RAGE bridge is {}",
-                         ToString(m_bridge->GetState()));
-    }
-    return m_bridge->Files().MountModsRoot(root);
-}
-
 RegistrationOutcome RageStreamingBackend::RegisterAsset(const streaming::PlannedAsset& asset)
 {
     if (!m_bridge->IsReady())
@@ -100,7 +90,7 @@ RegistrationOutcome RageStreamingBackend::RegisterAsset(const streaming::Planned
     if (!vfsPath)
     {
         return Failure(fmt::format("'{}' was not registered: it is outside the mounted folders "
-                                   "(resources and mods cache)",
+                                   "(resources and mods)",
                                    asset.fileName));
     }
 

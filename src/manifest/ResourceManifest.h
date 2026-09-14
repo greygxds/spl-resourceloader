@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "manifest/ManifestParser.h"
+#include "util/FileTree.h"
 
 namespace spl::manifest
 {
@@ -32,6 +33,12 @@ public:
     /// noteworthy to diagnostics.
     [[nodiscard]] static ResourceManifest
     FromDocument(const ManifestDocument& document, const std::filesystem::path& resourceRoot,
+                 std::vector<ManifestDiagnostic>& diagnostics);
+
+    /// The same, with the globs resolved in files rather than on disk.
+    [[nodiscard]] static ResourceManifest
+    FromDocument(const ManifestDocument& document, const util::IFileTree& files,
+                 const std::filesystem::path& resourceRoot,
                  std::vector<ManifestDiagnostic>& diagnostics);
 
     std::string fxVersion;          ///< informational

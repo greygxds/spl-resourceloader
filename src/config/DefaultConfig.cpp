@@ -18,7 +18,6 @@ constexpr std::string_view kDefaultConfig =
 enabled = true
 console = false                 # live log window that takes commands; type "help" in it
 safe_mode = "auto"              # after a crash during registration: "auto" skips the culprit, "off"
-allow_unverified_builds = true  # run on a newer game build when every signature still resolves
 early_init = true               # start with the game, as FiveM does; false waits for story mode
 
 [paths]
@@ -26,13 +25,13 @@ resources = "resources"
 mods = "mods"                     # user-installed .rpf mods (FiveM mods/ folder equivalent)
 
 [resources]
-auto_discover = true
+enabled = true                  # load the resources folder
 disabled = []                   # folder names, case-insensitive
 priority = []                   # loaded first, in this order; the rest alphabetically
 accept_legacy_manifest = true   # __resource.lua
 
 [mods]
-enabled = true                  # extract mods/*.rpf and load them after resources
+enabled = true                  # load mods/*.rpf after resources
 disabled = []                   # .rpf names without the extension, case-insensitive
 priority = []                   # loaded first among mods, in this order; the rest alphabetically
 
@@ -59,6 +58,11 @@ peds = true                     # ped metadata, personalities, shop apparel
 audio = true                    # AUDIO_GAMEDATA, AUDIO_SOUNDDATA, AUDIO_WAVEPACK, ...
 other = true                    # every other type the game knows
 disabled_types = []             # type names, e.g. ["CARCOLS_FILE"]
+
+[memory]                        # memory extensions; they need early_init = true
+extended_texture_budget = false # a 3 GB texture VRAM budget, instead of the game's own
+texture_budget_scale = 0        # 0-12: that budget times 1.0 to 2.0
+extended_streaming_memory = false # 12 GB+ RAM: bigger streaming allocator and resource cache
 
 [diagnostics]
 dump_streaming_modules = false  # log the game's streaming modules and data-file mounters

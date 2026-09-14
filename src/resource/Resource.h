@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "manifest/ResourceManifest.h"
+#include "util/FileTree.h"
 
 namespace spl::resource
 {
@@ -50,7 +51,11 @@ struct ResourceCandidate
     std::filesystem::path manifestPath;
     ManifestKind manifestKind = ManifestKind::FxManifest;
     std::vector<std::string> categories; ///< enclosing "[maps]" folders, for diagnostics
-    bool isMod = false;                  ///< extracted user mod: logs as a mod, sorts last
+    bool isMod = false;                  ///< user mod: logs as a mod, sorts last
+
+    /// Where the resource's files are read from; the disk when null. A user mod's root names no
+    /// folder, and its files come from its archive.
+    std::shared_ptr<const util::IFileTree> files;
 };
 
 /// One resource, with the state it has reached. Owned by ResourceManager.
@@ -80,11 +85,17 @@ public:
         return m_candidate.categories;
     }
 
+    /// The tree every path under GetRootPath() is read through.
+    [[nodiscard]] const util::IFileTree& GetFiles() const
+    {
+        return m_candidate.files ? *m_candidate.files : util::DiskFileTree::Instance();
+    }
+
     /// <root>/stream. It may not exist; a resource without one is still a valid resource.
     [[nodiscard]] std::filesystem::path GetStreamPath() const;
     [[nodiscard]] bool HasStreamDirectory() const;
 
-    /// An extracted user mod rather than a resource folder.
+    /// A user mod rather than a resource folder.
     [[nodiscard]] bool IsMod() const
     {
         return m_candidate.isMod;

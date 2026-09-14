@@ -120,11 +120,14 @@ struct strStreamingInfoManagerView
     StreamingDataEntry* entries; // +0x000
     uint8_t pad_0x008[0x10];
     int32_t numEntries; // +0x018
-    uint8_t pad_0x01C[0x1B8 - 0x1C];
+    uint8_t pad_0x01C[0x108 - 0x1C];
+    uint32_t loadedListCount; // +0x108, FiveM PatchExtendedBudgeting.cpp:108
+    uint8_t pad_0x10C[0x1B8 - 0x10C];
     strStreamingModuleMgrView moduleMgr; // +0x1B8
     int32_t numPendingRequests;          // +0x1E0
 };
 static_assert(offsetof(strStreamingInfoManagerView, numEntries) == 0x18);
+static_assert(offsetof(strStreamingInfoManagerView, loadedListCount) == 0x108);
 static_assert(offsetof(strStreamingInfoManagerView, moduleMgr) == 0x1B8);
 static_assert(offsetof(strStreamingInfoManagerView, numPendingRequests) == 0x1E0);
 

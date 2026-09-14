@@ -57,6 +57,9 @@
     <ClCompile Include="$(SplRoot)src\rage\MapStoreReloader.cpp">
       <Filter>src\rage</Filter>
     </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\MemoryBudget.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
     <ClCompile Include="$(SplRoot)src\rage\Natives.cpp">
       <Filter>src\rage</Filter>
     </ClCompile>
@@ -128,6 +131,9 @@
     <ClInclude Include="$(SplRoot)src\rage\MapStoreReloader.h">
       <Filter>src\rage</Filter>
     </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\MemoryBudget.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\Natives.h">
       <Filter>src\rage</Filter>
     </ClInclude>
@@ -177,6 +183,9 @@
       <Filter>src\rage\types</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\types\MapStoreTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\MemoryBudgetTypes.h">
       <Filter>src\rage\types</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\types\StreamingTypes.h">

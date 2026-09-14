@@ -92,9 +92,10 @@
     <ClCompile Include="$(SplRoot)tests\manifest\ManifestParserTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\manifest\ResourceManifestTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\mods\AssemblyParserTests.cpp" />
-    <ClCompile Include="$(SplRoot)tests\mods\ModExtractorTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\mods\ModOverlayTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\mods\ModsScannerTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\mods\ModLayoutTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\mods\ModFileTreeTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\memory\AddressTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\memory\CodePatchTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\memory\FileVersionTests.cpp" />
@@ -105,8 +106,10 @@
     <ClCompile Include="$(SplRoot)tests\rage\LooseResourceDeviceTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\ForcedDeviceTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\MapStoreTypesTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\MemoryBudgetTypesTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\StreamingTypesTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rage\VfsPathTests.cpp" />
+    <ClCompile Include="$(SplRoot)tests\rage\ModArchiveDeviceTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\resource\ResourceManagerTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\resource\ResourceScannerTests.cpp" />
     <ClCompile Include="$(SplRoot)tests\rpf\RpfReaderTests.cpp" />

@@ -66,6 +66,28 @@ public:
     /// NotFound for missing paths, InvalidArgument for directories, Parse for corrupt data.
     [[nodiscard]] Result<std::vector<std::byte>> ReadFile(std::string_view path) const;
 
+    /// What the table says about a file, without reading it (except a large resource's size
+    /// header).
+    struct FileInfo
+    {
+        uint64_t sizeBytes = 0; ///< what ReadFile returns
+        bool isStored = false;  ///< the bytes are in the archive verbatim; GetStoredBytes works
+        bool isLargeResource = false; ///< stored with a size header where RSC7 would be
+        uint32_t virtualFlags = 0;
+        uint32_t physicalFlags = 0;
+    };
+    [[nodiscard]] Result<FileInfo> Stat(std::string_view path) const;
+
+    /// The first maxBytes of what ReadFile returns. A stored file is not copied past them; a
+    /// deflated one is inflated whole, which only small metadata files are.
+    [[nodiscard]] Result<std::vector<std::byte>> ReadPrefix(std::string_view path,
+                                                            std::size_t maxBytes) const;
+
+    /// A stored file's bytes exactly as the archive holds them, so a large resource starts with
+    /// its size header rather than RSC7. The span lives as long as this reader's storage does.
+    /// NotSupported for a deflated file.
+    [[nodiscard]] Result<std::span<const char>> GetStoredBytes(std::string_view path) const;
+
     /// Whether a file (not a directory) is at path, looked up the way ReadFile looks it up.
     [[nodiscard]] bool Contains(std::string_view path) const
     {

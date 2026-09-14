@@ -5,6 +5,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -28,6 +29,7 @@ constexpr std::string_view kTableMods = "mods";
 constexpr std::string_view kTableLogging = "logging";
 constexpr std::string_view kTableStreaming = "streaming";
 constexpr std::string_view kTableDataFiles = "data_files";
+constexpr std::string_view kTableMemory = "memory";
 constexpr std::string_view kTableDiagnostics = "diagnostics";
 
 struct LevelName
@@ -179,7 +181,8 @@ public:
         target = std::filesystem::path{trimmed};
     }
 
-    void Read(std::string_view key, uint32_t& target)
+    void Read(std::string_view key, uint32_t& target,
+              uint32_t maximum = std::numeric_limits<uint32_t>::max())
     {
         const toml::node* node = Find(key);
         if (node == nullptr)
@@ -192,9 +195,11 @@ public:
             WarnWrongType(key, "an integer");
             return;
         }
-        if (*value < 0 || *value > std::numeric_limits<uint32_t>::max())
+        if (*value < 0 || *value > maximum)
         {
-            Warn(key, "is out of range (ignored)");
+            Warn(key, maximum == std::numeric_limits<uint32_t>::max()
+                          ? std::string{"is out of range (ignored)"}
+                          : fmt::format("is out of range 0-{} (ignored)", maximum));
             return;
         }
         target = static_cast<uint32_t>(*value);
@@ -421,9 +426,9 @@ const toml::table* GetTable(const toml::table& root, std::string_view name,
 
 void ReportUnknownTables(const toml::table& root, ConfigDiagnostics& diagnostics)
 {
-    constexpr std::array kKnownTables = {kTableLoader,    kTablePaths,      kTableResources,
-                                         kTableMods,      kTableLogging,    kTableStreaming,
-                                         kTableDataFiles, kTableDiagnostics};
+    constexpr std::array kKnownTables = {kTableLoader,    kTablePaths,   kTableResources,
+                                         kTableMods,      kTableLogging, kTableStreaming,
+                                         kTableDataFiles, kTableMemory,  kTableDiagnostics};
     for (const auto& [key, value] : root)
     {
         const std::string_view name{key.str()};
@@ -478,7 +483,6 @@ ConfigLoadResult ConfigLoader::Parse(std::string_view tomlText)
         reader.Read("enabled", config.loader.enabled);
         reader.Read("console", config.loader.console);
         reader.ReadSafeMode("safe_mode", config.loader.safeMode);
-        reader.Read("allow_unverified_builds", config.loader.allowUnverifiedBuilds);
         reader.Read("early_init", config.loader.earlyInit);
         reader.ReportUnknownKeys();
     }
@@ -491,7 +495,7 @@ ConfigLoadResult ConfigLoader::Parse(std::string_view tomlText)
     {
         TableReader reader{GetTable(root, kTableResources, diagnostics), kTableResources,
                            diagnostics};
-        reader.Read("auto_discover", config.resources.autoDiscover);
+        reader.Read("enabled", config.resources.enabled);
         reader.ReadNameList("disabled", config.resources.disabled);
         reader.ReadNameList("priority", config.resources.priority);
         reader.Read("accept_legacy_manifest", config.resources.acceptLegacyManifest);
@@ -534,6 +538,14 @@ ConfigLoadResult ConfigLoader::Parse(std::string_view tomlText)
         reader.Read("audio", config.dataFiles.audio);
         reader.Read("other", config.dataFiles.other);
         reader.ReadNameList("disabled_types", config.dataFiles.disabledTypes);
+        reader.ReportUnknownKeys();
+    }
+    {
+        TableReader reader{GetTable(root, kTableMemory, diagnostics), kTableMemory, diagnostics};
+        reader.Read("extended_texture_budget", config.memory.extendedTextureBudget);
+        reader.Read("texture_budget_scale", config.memory.textureBudgetScale,
+                    MemorySettings::kMaxTextureBudgetScale);
+        reader.Read("extended_streaming_memory", config.memory.extendedStreamingMemory);
         reader.ReportUnknownKeys();
     }
     {

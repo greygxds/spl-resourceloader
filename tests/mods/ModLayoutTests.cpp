@@ -5,7 +5,8 @@
 
 #include <catch_amalgamated.hpp>
 
-#include "mods/ModExtractor.h"
+#include "core/Result.h"
+#include "mods/ModLayout.h"
 #include "mods/ModPackage.h"
 #include "mods/ModsScanner.h"
 #include "tests/TempTree.h"
@@ -13,7 +14,7 @@
 
 using spl::mods::DiscoveredMod;
 using spl::mods::ModEntry;
-using spl::mods::ModExtractor;
+using spl::mods::ModLayout;
 using spl::mods::ModPackage;
 using spl::tests::RpfBuilder;
 using spl::tests::TempDir;
@@ -54,6 +55,13 @@ namespace
                          .package = std::move(package)};
 }
 
+/// What the layout serves at a mod-relative path, read the way the loader reads it.
+[[nodiscard]] std::string Read(const ModLayout::Result& laid, std::string_view relative)
+{
+    const spl::Result<std::string> contents = laid.files->Read(laid.root / relative);
+    return contents ? contents.GetValue() : std::string{"<missing>"};
+}
+
 [[nodiscard]] bool Mentions(const std::vector<std::string>& warnings, std::string_view text)
 {
     for (const std::string& warning : warnings)
@@ -67,7 +75,7 @@ namespace
 }
 } // namespace
 
-TEST_CASE("ModExtractor: extracts candidates, metas and faux packs", "[mods]")
+TEST_CASE("ModLayout: lays out candidates, metas and faux packs", "[mods]")
 {
     TempDir dir;
     const DiscoveredMod mod =
@@ -77,47 +85,45 @@ TEST_CASE("ModExtractor: extracts candidates, metas and faux packs", "[mods]")
                   Add({"common.rpf"}, "custom.meta", "data\\custom.meta"),
                   Add({"common.rpf"}, "extra.rpf", "extra.rpf"), Add({}, "extra.rpf", "dlc.rpf")});
 
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(extracted.root == dir.Path() / "cache" / "mycar");
-    CHECK(extracted.extractedFiles == 4);
-    CHECK(dir.ReadFile("cache/mycar/stream/car.yft") == "model");
-    CHECK(dir.ReadFile("cache/mycar/stream/inner.ytd") == "nested");
-    CHECK(dir.ReadFile("cache/mycar/common/data/handling.meta") == "handling");
-    CHECK(dir.ReadFile("cache/mycar/common/data/custom.meta") == "custom"); // overlay only
-    const std::string manifest = dir.ReadFile("cache/mycar/fxmanifest.lua");
+    CHECK(laid.root == dir.Path() / "mods" / "mycar");
+    CHECK(laid.files->GetFiles().size() == 5); // four files and the manifest
+    CHECK(Read(laid, "stream/car.yft") == "model");
+    CHECK(Read(laid, "stream/inner.ytd") == "nested");
+    CHECK(Read(laid, "common/data/handling.meta") == "handling");
+    CHECK(Read(laid, "common/data/custom.meta") == "custom"); // overlay only
+    const std::string manifest = Read(laid, "fxmanifest.lua");
     CHECK(manifest.find("game 'gta5'") != std::string::npos);
     CHECK(manifest.find("data_file 'HANDLING_FILE' 'common/data/handling.meta'") !=
           std::string::npos);
     CHECK(manifest.find("custom.meta") == std::string::npos);
-    CHECK(Mentions(extracted.warnings, "setup2.xml"));
-    CHECK(extracted.warnings.size() == 1);
+    CHECK(Mentions(laid.warnings, "setup2.xml"));
+    CHECK(laid.warnings.size() == 1);
 
-    REQUIRE(extracted.overlays.size() == 2);
-    CHECK(extracted.overlays[0].folder == dir.Path() / "cache" / "mycar" / "common");
-    CHECK(extracted.overlays[0].mountPoint == "common:/");
-    CHECK(extracted.overlays[0].probeFile == "data/handling.meta");
-    CHECK(extracted.overlays[1].mountPoint == "commoncrc:/");
+    REQUIRE(laid.overlays.size() == 2);
+    CHECK(laid.overlays[0].folder == dir.Path() / "mods" / "mycar" / "common");
+    CHECK(laid.overlays[0].mountPoint == "common:/");
+    CHECK(laid.overlays[0].probeFile == "data/handling.meta");
+    CHECK(laid.overlays[1].mountPoint == "commoncrc:/");
 }
 
-TEST_CASE("ModExtractor: platform targets get their own overlay mounts", "[mods]")
+TEST_CASE("ModLayout: platform targets get their own overlay mounts", "[mods]")
 {
     TempDir dir;
     const DiscoveredMod mod =
         WriteMod(dir, "hud", {Add({"update\\update.rpf"}, "one.ytd", "x64\\textures\\hud.ytd")});
 
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(dir.ReadFile("cache/hud/platform/textures/hud.ytd") == "one");
-    REQUIRE(extracted.overlays.size() == 2);
-    CHECK(extracted.overlays[0].mountPoint == "platform:/");
-    CHECK(extracted.overlays[1].mountPoint == "platformcrc:/");
-    CHECK(extracted.overlays[0].probeFile == "textures/hud.ytd");
+    CHECK(Read(laid, "platform/textures/hud.ytd") == "one");
+    REQUIRE(laid.overlays.size() == 2);
+    CHECK(laid.overlays[0].mountPoint == "platform:/");
+    CHECK(laid.overlays[1].mountPoint == "platformcrc:/");
+    CHECK(laid.overlays[0].probeFile == "textures/hud.ytd");
 }
 
-TEST_CASE("ModExtractor: the first basename wins", "[mods]")
+TEST_CASE("ModLayout: the first basename wins", "[mods]")
 {
     TempDir dir;
     const DiscoveredMod mod =
@@ -125,14 +131,13 @@ TEST_CASE("ModExtractor: the first basename wins", "[mods]")
                  {Add({"update\\update.rpf", "x64\\a.rpf"}, "one.ytd", "same.ytd"),
                   Add({"update\\update.rpf", "x64\\b.rpf"}, "two.ytd", "same.ytd")});
 
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(dir.ReadFile("cache/clash/stream/same.ytd") == "one");
-    CHECK(Mentions(extracted.warnings, "already provided"));
+    CHECK(Read(laid, "stream/same.ytd") == "one");
+    CHECK(Mentions(laid.warnings, "already provided"));
 }
 
-TEST_CASE("ModExtractor: resolves bare backslash sources under content/", "[mods]")
+TEST_CASE("ModLayout: resolves bare backslash sources under content/", "[mods]")
 {
     TempDir dir;
     RpfBuilder builder;
@@ -146,32 +151,30 @@ TEST_CASE("ModExtractor: resolves bare backslash sources under content/", "[mods
                            "common\\data\\timecycle\\timecycle_mods_1.xml")};
     const DiscoveredMod mod{
         .name = "quant", .absolutePath = dir.Path() / "quant.rpf", .package = std::move(package)};
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(dir.ReadFile("cache/quant/common/data/timecycle/timecycle_mods_1.xml") == "<mods/>");
-    const std::string manifest = dir.ReadFile("cache/quant/fxmanifest.lua");
+    CHECK(Read(laid, "common/data/timecycle/timecycle_mods_1.xml") == "<mods/>");
+    const std::string manifest = Read(laid, "fxmanifest.lua");
     CHECK(manifest.find(
               "data_file 'TIMECYCLEMOD_FILE' 'common/data/timecycle/timecycle_mods_1.xml'") !=
           std::string::npos);
-    CHECK(extracted.warnings.empty());
+    CHECK(laid.warnings.empty());
 }
 
-TEST_CASE("ModExtractor: sanitizes the cache folder name", "[mods]")
+TEST_CASE("ModLayout: sanitizes the mod folder name", "[mods]")
 {
     TempDir dir;
     RpfBuilder builder;
     builder.AddFile("assembly.xml", "<package/>");
     dir.WriteFile("mymod.rpf", builder.Build());
 
-    // Archive stems are user input; the cache folder must stay a plain folder name.
+    // Archive stems are user input; the mod folder must stay a plain VFS path segment.
     const DiscoveredMod mod{
         .name = "my:mod", .absolutePath = dir.Path() / "mymod.rpf", .package = ModPackage{}};
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(extracted.root == dir.Path() / "cache" / "my_mod");
-    CHECK(extracted.extractedFiles == 0);
+    CHECK(laid.root == dir.Path() / "mods" / "my_mod");
+    CHECK(laid.files->GetFiles().size() == 1); // the manifest alone
 }
 
 namespace
@@ -205,7 +208,7 @@ namespace
 }
 } // namespace
 
-TEST_CASE("ModExtractor: loads content DLCs in order", "[mods]")
+TEST_CASE("ModLayout: loads content DLCs in order", "[mods]")
 {
     TempDir dir;
     RpfBuilder builder;
@@ -219,12 +222,11 @@ TEST_CASE("ModExtractor: loads content DLCs in order", "[mods]")
     package.entries = {Add({}, "second.rpf", "second.rpf"), Add({}, "first.rpf", "first.rpf")};
     const DiscoveredMod mod{
         .name = "patch", .absolutePath = dir.Path() / "patch.rpf", .package = std::move(package)};
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(dir.ReadFile("cache/patch/stream/top.ytd") == "packed");
-    CHECK(dir.ReadFile("cache/patch/__dlc__/dlc_one/common/data/vehicles.meta") == "vehicles");
-    const std::string manifest = dir.ReadFile("cache/patch/fxmanifest.lua");
+    CHECK(Read(laid, "stream/top.ytd") == "packed");
+    CHECK(Read(laid, "__dlc__/dlc_one/common/data/vehicles.meta") == "vehicles");
+    const std::string manifest = Read(laid, "fxmanifest.lua");
     const std::size_t one = manifest.find("__dlc__/dlc_one/");
     const std::size_t two = manifest.find("__dlc__/dlc_two/");
     REQUIRE(one != std::string::npos);
@@ -232,10 +234,10 @@ TEST_CASE("ModExtractor: loads content DLCs in order", "[mods]")
     CHECK(one < two); // order 5 before order 20
     // Both DLCs ship the same top.ytd: the first keeps it, and a pack repeating a name of an
     // earlier pack of the same mod is expected, not a warning.
-    CHECK(extracted.warnings.empty());
+    CHECK(laid.warnings.empty());
 }
 
-TEST_CASE("ModExtractor: skips DLCs outside their required version", "[mods]")
+TEST_CASE("ModLayout: skips DLCs outside their required version", "[mods]")
 {
     TempDir dir;
     RpfBuilder builder;
@@ -248,57 +250,15 @@ TEST_CASE("ModExtractor: skips DLCs outside their required version", "[mods]")
     package.entries = {Add({}, "new.rpf", "new.rpf"), Add({}, "old.rpf", "old.rpf")};
     const DiscoveredMod mod{
         .name = "patch", .absolutePath = dir.Path() / "patch.rpf", .package = std::move(package)};
-    const spl::mods::ModExtractor::Result extracted =
-        ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    const std::string manifest = dir.ReadFile("cache/patch/fxmanifest.lua");
+    const std::string manifest = Read(laid, "fxmanifest.lua");
     CHECK(manifest.find("dlc_new") == std::string::npos);
     CHECK(manifest.find("__dlc__/dlc_old/") != std::string::npos);
-    CHECK(Mentions(extracted.warnings, "9999-"));
+    CHECK(Mentions(laid.warnings, "9999-"));
 }
 
-TEST_CASE("ModExtractor: an unchanged mod is reused, a changed one is extracted again", "[mods]")
-{
-    TempDir dir;
-    const DiscoveredMod mod =
-        WriteMod(dir, "mycar", {Add({"common.rpf"}, "handling.meta", "data\\handling.meta")});
-
-    const ModExtractor::Result first = ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
-    REQUIRE_FALSE(first.reused);
-    REQUIRE(first.overlays.size() == 2);
-
-    // A file left in the cache by hand disappears only when the mod is extracted again.
-    dir.WriteFile("cache/mycar/stream/leftover.ytd", "x");
-    const ModExtractor::Result second = ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
-    CHECK(second.reused);
-    CHECK(second.extractedFiles == first.extractedFiles);
-    REQUIRE(second.overlays.size() == first.overlays.size());
-    CHECK(second.overlays[0].folder == first.overlays[0].folder);
-    CHECK(second.overlays[0].mountPoint == first.overlays[0].mountPoint);
-    CHECK(second.overlays[0].probeFile == first.overlays[0].probeFile);
-    CHECK(second.warnings == first.warnings);
-    CHECK(std::filesystem::exists(dir.Path() / "cache/mycar/stream/leftover.ytd"));
-
-    // Another game build may gate content DLCs differently.
-    const ModExtractor::Result rebuilt = ModExtractor::Extract(mod, dir.Path() / "cache", 3889);
-    CHECK_FALSE(rebuilt.reused);
-    CHECK_FALSE(std::filesystem::exists(dir.Path() / "cache/mycar/stream/leftover.ytd"));
-}
-
-TEST_CASE("ModExtractor: the cache keeps only the mods still installed", "[mods]")
-{
-    TempDir dir;
-    dir.WriteFile("cache/gone/fxmanifest.lua", "");
-    dir.WriteFile("cache/kept/fxmanifest.lua", "");
-
-    const std::vector<DiscoveredMod> mods{DiscoveredMod{.name = "Kept"}};
-    REQUIRE(ModExtractor::PruneCache(dir.Path() / "cache", mods));
-
-    CHECK_FALSE(std::filesystem::exists(dir.Path() / "cache/gone"));
-    CHECK(std::filesystem::exists(dir.Path() / "cache/kept"));
-}
-
-TEST_CASE("ModExtractor: every nested pack keeps its own packfile manifest", "[mods]")
+TEST_CASE("ModLayout: every nested pack keeps its own packfile manifest", "[mods]")
 {
     RpfBuilder first;
     first.AddFile("_manifest.ymf", "PSIN-first");
@@ -320,12 +280,12 @@ TEST_CASE("ModExtractor: every nested pack keeps its own packfile manifest", "[m
     const DiscoveredMod mod{
         .name = "veg", .absolutePath = dir.Path() / "veg.rpf", .package = std::move(package)};
 
-    const ModExtractor::Result extracted = ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(dir.ReadFile("cache/veg/stream/pack1/_manifest.ymf") == "PSIN-first");
-    CHECK(dir.ReadFile("cache/veg/stream/pack2/_manifest.ymf") == "PSIN-second");
-    CHECK(dir.ReadFile("cache/veg/stream/tree.ydr") == "first-tree");
-    CHECK(extracted.warnings.empty()); // a later pack repeating a name is not the user's problem
+    CHECK(Read(laid, "stream/pack1/_manifest.ymf") == "PSIN-first");
+    CHECK(Read(laid, "stream/pack2/_manifest.ymf") == "PSIN-second");
+    CHECK(Read(laid, "stream/tree.ydr") == "first-tree");
+    CHECK(laid.warnings.empty()); // a later pack repeating a name is not the user's problem
 }
 
 namespace
@@ -389,24 +349,24 @@ namespace
 }
 } // namespace
 
-TEST_CASE("ModExtractor: a DLC split into dlc.rpf and dlc1.rpf resolves across both", "[mods]")
+TEST_CASE("ModLayout: a DLC split into dlc.rpf and dlc1.rpf resolves across both", "[mods]")
 {
     TempDir dir;
     const DiscoveredMod mod = WriteSplitMod(dir, "split", true, true);
 
-    const ModExtractor::Result extracted = ModExtractor::Extract(mod, dir.Path() / "cache", 3411);
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
 
-    CHECK(extracted.warnings.empty());
-    CHECK(extracted.unresolvedDlcFiles.empty());
-    CHECK(dir.ReadFile("cache/split/stream/rock.ydr") == "rock");
-    CHECK(dir.ReadFile("cache/split/stream/props.ytyp") == "types");
-    // Both content.xml files list both packfiles: each is extracted once.
-    CHECK(dir.ReadFile("cache/split/stream/pack1/_manifest.ymf") == "PSIN-a");
-    CHECK(dir.ReadFile("cache/split/stream/pack2/_manifest.ymf") == "PSIN-b");
-    CHECK_FALSE(std::filesystem::exists(dir.Path() / "cache/split/stream/pack3"));
-    CHECK(ModExtractor::ReportUnresolvedDlcFiles(std::span{&extracted, 1}).empty());
+    CHECK(laid.warnings.empty());
+    CHECK(laid.unresolvedDlcFiles.empty());
+    CHECK(Read(laid, "stream/rock.ydr") == "rock");
+    CHECK(Read(laid, "stream/props.ytyp") == "types");
+    // Both content.xml files list both packfiles: each is laid once.
+    CHECK(Read(laid, "stream/pack1/_manifest.ymf") == "PSIN-a");
+    CHECK(Read(laid, "stream/pack2/_manifest.ymf") == "PSIN-b");
+    CHECK_FALSE(laid.files->IsDirectory("stream/pack3"));
+    CHECK(ModLayout::ReportUnresolvedDlcFiles(std::span{&laid, 1}).empty());
 
-    const std::string manifest = dir.ReadFile("cache/split/fxmanifest.lua");
+    const std::string manifest = Read(laid, "fxmanifest.lua");
     const std::string request = "data_file 'DLC_ITYP_REQUEST' 'stream/props.ytyp'";
     const std::size_t found = manifest.find(request);
     REQUIRE(found != std::string::npos);
@@ -416,34 +376,38 @@ TEST_CASE("ModExtractor: a DLC split into dlc.rpf and dlc1.rpf resolves across b
     CHECK(manifest.find(".ityp") == std::string::npos);
 }
 
-TEST_CASE("ModExtractor: a DLC split across two mods is only missing files neither has", "[mods]")
+TEST_CASE("ModLayout: a DLC split across two mods is only missing files neither has", "[mods]")
 {
     TempDir dir;
     const DiscoveredMod part1 = WriteSplitMod(dir, "part1", true, false);
     const DiscoveredMod part2 = WriteSplitMod(dir, "part2", false, true);
 
-    const std::vector<ModExtractor::Result> both{
-        ModExtractor::Extract(part1, dir.Path() / "cache", 3411),
-        ModExtractor::Extract(part2, dir.Path() / "cache", 3411)};
+    const std::vector<ModLayout::Result> both{ModLayout::Build(part1, dir.Path() / "mods", 3411),
+                                              ModLayout::Build(part2, dir.Path() / "mods", 3411)};
 
     CHECK(both[0].warnings.empty());
     CHECK(both[1].warnings.empty());
     REQUIRE(both[0].unresolvedDlcFiles.size() == 1);
     CHECK(both[0].unresolvedDlcFiles[0].path == "x64/b.rpf");
-    CHECK(ModExtractor::ReportUnresolvedDlcFiles(both).empty());
+    CHECK(ModLayout::ReportUnresolvedDlcFiles(both).empty());
 
     // Without the other half, the file is reported once, by its content.xml name.
     const std::vector<std::string> alone =
-        ModExtractor::ReportUnresolvedDlcFiles(std::span{both.data(), 1});
+        ModLayout::ReportUnresolvedDlcFiles(std::span{both.data(), 1});
     REQUIRE(alone.size() == 1);
     CHECK(Mentions(alone, "dlc_split:/%PLATFORM%/b.rpf"));
+}
 
-    // The cache remembers what the mod provides and misses.
-    const ModExtractor::Result reused = ModExtractor::Extract(part1, dir.Path() / "cache", 3411);
-    REQUIRE(reused.reused);
-    REQUIRE(reused.unresolvedDlcFiles.size() == 1);
-    CHECK(reused.unresolvedDlcFiles[0].device == "dlc_split");
-    CHECK(reused.unresolvedDlcFiles[0].path == "x64/b.rpf");
-    CHECK(reused.unresolvedDlcFiles[0].warning == both[0].unresolvedDlcFiles[0].warning);
-    CHECK(reused.providedDlcFiles.size() == both[0].providedDlcFiles.size());
+TEST_CASE("ModLayout: nothing is written to disk", "[mods]")
+{
+    TempDir dir;
+    const DiscoveredMod mod =
+        WriteMod(dir, "mycar",
+                 {Add({"update\\update.rpf", "x64\\models.rpf"}, "car.yft", "car.yft"),
+                  Add({"common.rpf"}, "handling.meta", "data\\handling.meta")});
+
+    const ModLayout::Result laid = ModLayout::Build(mod, dir.Path() / "mods", 3411);
+
+    CHECK(Read(laid, "stream/car.yft") == "model");
+    CHECK_FALSE(std::filesystem::exists(dir.Path() / "mods"));
 }

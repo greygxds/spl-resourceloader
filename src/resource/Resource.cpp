@@ -2,9 +2,9 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <utility>
 
 namespace spl::resource
@@ -59,8 +59,8 @@ std::filesystem::path Resource::GetStreamPath() const
 
 bool Resource::HasStreamDirectory() const
 {
-    std::error_code error;
-    return std::filesystem::is_directory(GetStreamPath(), error);
+    const std::optional<util::FileTreeStat> stat = GetFiles().Stat(GetStreamPath());
+    return stat && stat->isDirectory;
 }
 
 void Resource::SetState(ResourceState state, std::string reason)

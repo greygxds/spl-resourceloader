@@ -14,13 +14,14 @@
 #include "memory/Module.h"
 #include "rage/GameAddresses.h"
 #include "rage/LooseResourceDevice.h"
+#include "rage/ModArchiveDevice.h"
 
 namespace spl::rage
 {
 /// Access to RAGE's device layer: which device serves a path, what it says about a file, and
 /// the devices we add ourselves — an fiDeviceRelative over the resources folder at
-/// "splres:/", plus one over the extracted user-mods cache at "splmods:/", so the game
-/// can open files from either by VFS path.
+/// "splres:/", plus a ModArchiveDevice serving the user mods from their archives at
+/// "splmods:/", so the game can open files from either by VFS path.
 class FileDeviceInterface
 {
 public:
@@ -35,17 +36,25 @@ public:
     /// second call with the same root is a no-op and a different root is an error.
     [[nodiscard]] Result<void> MountResourcesRoot(const std::filesystem::path& root);
 
-    /// The same for the extracted user-mods cache at "splmods:/". Only called when at
-    /// least one mod was adopted; a missing folder is a no-op success, not an error.
-    [[nodiscard]] Result<void> MountModsRoot(const std::filesystem::path& root);
+    /// Mounts a ModArchiveDevice over mods at "splmods:/", so every adopted mod's files are
+    /// reachable by VFS path under root, the folder their resources are rooted at (which does not
+    /// exist on disk). mods must outlive the process's use of the device. Only called when at
+    /// least one mod was adopted; a second call with the same root is a no-op.
+    [[nodiscard]] Result<void> MountModsRoot(const std::filesystem::path& root,
+                                             const IDeviceFileSource& mods);
 
-    /// Mounts an fiDeviceRelative over folder at a game mount point ("common:/"), so the files
-    /// in it replace the game's own, as FiveM does for a mod's common/ and platform/. The
-    /// game's device stays mounted underneath. True when probeFile now resolves to our device;
-    /// false when the game's device still answers first, which is logged by the caller.
-    [[nodiscard]] Result<bool> MountOverlay(const std::filesystem::path& folder,
+    /// Mounts a ModArchiveDevice over one mod folder of mods ("mycar/common") at a game mount
+    /// point ("common:/"), so the files in it replace the game's own, as FiveM does for a mod's
+    /// common/ and platform/ (ModVFSDevice.cpp:354-389). The game's device stays mounted
+    /// underneath. True when probeFile now resolves to our device; false when the game's device
+    /// still answers first, which is logged by the caller.
+    [[nodiscard]] Result<bool> MountOverlay(const IDeviceFileSource& mods, std::string folder,
                                             std::string_view mountPoint,
                                             std::string_view probeFile);
+
+    /// Every vtable slot of our mod devices that the game called although nothing was known to
+    /// call it, for the log. Empty on the builds the device was checked against.
+    [[nodiscard]] std::vector<std::size_t> GetUnexpectedModDeviceSlots() const;
 
     /// True when path ("common:/data/visualsettings.dat") is served by one of the overlays
     /// MountOverlay put in, and not by a game device mounted or sorted in front since.
@@ -101,11 +110,9 @@ private:
     [[nodiscard]] void* PutLooseResourceDeviceInFront(void* relativeDevice,
                                                       const std::string& mountPoint);
 
-    /// Shared mount logic for both roots; storage/constructed select the device.
-    [[nodiscard]] Result<void> MountRoot(const std::filesystem::path& root,
-                                         std::string_view mountPoint, void* storage,
-                                         std::size_t storageBytes, bool& constructed,
-                                         void*& deviceSlot, std::filesystem::path& rootSlot);
+    /// Mounts a device of ours with MountGlobal and proves the mount point now resolves to it.
+    [[nodiscard]] Result<void> MountAndVerify(std::string_view mountPoint, void* device,
+                                              std::string_view rootForLog);
 
     uintptr_t m_getDevice = 0;
     uintptr_t m_relativeVftable = 0;
@@ -117,10 +124,11 @@ private:
     std::filesystem::path m_resourcesRoot;
     void* m_mountedDevice = nullptr; ///< non-owning: the game keeps it until the process ends
     std::filesystem::path m_modsRoot;
-    void* m_modsDevice = nullptr; ///< non-owning, same lifetime deal as above
+    void* m_modsDevice = nullptr; ///< the game object of the root mod device, once mounted
 
-    /// Storage for overlay devices, never freed: the game's mount table keeps them.
-    std::vector<std::unique_ptr<std::array<std::byte, 0x200>>> m_overlayDevices;
+    /// Every mod device, root and overlays, kept for the process: the game's mount table keeps
+    /// pointers to them.
+    std::vector<std::unique_ptr<ModArchiveDevice>> m_modDevices;
     std::vector<void*> m_overlays; ///< the devices answering for each overlay, non-owning
 
     /// In front of every mount of ours; kept for the process, like the devices they front.

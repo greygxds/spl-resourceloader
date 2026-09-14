@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 
+#include "util/FileTree.h"
+
 namespace spl::util
 {
 /// Matches a path against a glob pattern, case-insensitively, on '/'-separated text.
@@ -18,6 +20,10 @@ namespace spl::util
 /// A pattern that escapes the root, or a root that cannot be read, yields nothing.
 [[nodiscard]] std::vector<std::string> GlobFiles(const std::filesystem::path& root,
                                                  std::string_view pattern);
+
+/// The same over any file tree.
+[[nodiscard]] std::vector<std::string>
+GlobFiles(const IFileTree& files, const std::filesystem::path& root, std::string_view pattern);
 
 /// True when the pattern has no wildcard and therefore names a single file.
 [[nodiscard]] bool IsLiteralPattern(std::string_view pattern);

@@ -85,6 +85,12 @@ Result<GameAddresses> GameAddresses::Build(const ResolvedSignatures& resolved)
         .fiDeviceSortRelativeDevicesCall =
             Take(resolved, "rage::fiDevice::SortRelativeDevicesCall"),
         .fiDeviceMountLimit = Take(resolved, "rage::fiDevice::MountLimit"),
+        .textureBudgetTable = Take(resolved, "TextureBudgetTable"),
+        .getTextureVideoMemoryUsage = Take(resolved, "GetTextureVideoMemoryUsage"),
+        .getAvailableMemoryForStreamer = Take(resolved, "GetAvailableMemoryForStreamer"),
+        .resourceCachePoolSize = Take(resolved, "ResourceCachePoolSize"),
+        .resourceCachePoolLimit = Take(resolved, "ResourceCachePoolLimit"),
+        .streamingAllocatorReservation = Take(resolved, "StreamingAllocatorReservation"),
     };
 }
 } // namespace spl::rage

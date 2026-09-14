@@ -15,7 +15,8 @@
 #include "core/CrashReport.h"
 #include "core/Paths.h"
 #include "core/SessionGuard.h"
-#include "mods/ModExtractor.h"
+#include "mods/ModCatalog.h"
+#include "mods/ModLayout.h"
 #include "rage/RageBridge.h"
 #include "rage/RageStreamingBackend.h"
 #include "resource/ResourceManager.h"
@@ -146,7 +147,13 @@ private:
     /// One warning per resource whose level metas cannot load this session.
     void WarnAboutLevelMetas() const;
 
-    /// Mounts the resources folder, the mods cache and the mods' overlays, once.
+    /// Applies the [memory] extensions the config asks for. Only while the game starts.
+    void ExtendMemoryBudgets();
+
+    /// One warning when [memory] asks for an extension that cannot apply this session.
+    void WarnAboutMemoryBudgets() const;
+
+    /// Mounts the resources folder, the mods and the mods' overlays, once.
     void MountGameRoots();
 
     /// Mounts every adopted mod's common/ and platform/ over the game's, in mod order.
@@ -158,8 +165,8 @@ private:
     /// Reports what the previous session left behind and returns whether to run in safe mode.
     [[nodiscard]] bool ApplySessionStartup(const SessionStartup& startup);
 
-    /// Scans mods/, extracts them to the cache folder and adopts them as resources sorted
-    /// after everything discovered, so same-named files lose to resources.
+    /// Scans mods/, lays each out from its archive and adopts them as resources sorted after
+    /// everything discovered, so same-named files lose to resources.
     void DiscoverMods(std::span<const std::string> quarantined);
 
     /// Called from the crash handler: what only the application knows.
@@ -185,11 +192,15 @@ private:
     config::LoaderConfig m_config;
     resource::ResourceManager m_resources;
     std::filesystem::path m_resourcesRoot;
-    std::filesystem::path m_modsCacheRoot; ///< empty when no mod was adopted
+    std::filesystem::path m_modsRoot; ///< mod resources' root; empty when none was adopted
+
+    /// The adopted mods' files, which the game reads through the devices mounted over it. Kept
+    /// for the whole process: the game keeps the devices.
+    mods::ModCatalog m_modCatalog;
 
     /// The adopted mods' common/ and platform/ folders, mounted over the game's once the bridge
     /// is up, in mod order.
-    std::vector<mods::ModExtractor::OverlayRoot> m_modOverlays;
+    std::vector<mods::ModLayout::OverlayRoot> m_modOverlays;
     streaming::StreamingPlan m_plan;
     rage::RageBridge m_bridge;
     std::unique_ptr<rage::RageStreamingBackend> m_backend;

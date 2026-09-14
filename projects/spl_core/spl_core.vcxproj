@@ -96,9 +96,11 @@
     <ClCompile Include="$(SplRoot)src\manifest\ManifestParser.cpp" />
     <ClCompile Include="$(SplRoot)src\manifest\ResourceManifest.cpp" />
     <ClCompile Include="$(SplRoot)src\mods\AssemblyParser.cpp" />
-    <ClCompile Include="$(SplRoot)src\mods\ModExtractor.cpp" />
     <ClCompile Include="$(SplRoot)src\mods\ModOverlay.cpp" />
     <ClCompile Include="$(SplRoot)src\mods\ModsScanner.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\ModLayout.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\ModFileTree.cpp" />
+    <ClCompile Include="$(SplRoot)src\mods\ModCatalog.cpp" />
     <ClCompile Include="$(SplRoot)src\resource\Resource.cpp" />
     <ClCompile Include="$(SplRoot)src\resource\ResourceManager.cpp" />
     <ClCompile Include="$(SplRoot)src\resource\ResourceScanner.cpp" />
@@ -112,6 +114,7 @@
     <ClCompile Include="$(SplRoot)src\streaming\StreamingPlan.cpp" />
     <ClCompile Include="$(SplRoot)src\util\Glob.cpp" />
     <ClCompile Include="$(SplRoot)src\util\Strings.cpp" />
+    <ClCompile Include="$(SplRoot)src\util\FileTree.cpp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -135,10 +138,12 @@
     <ClInclude Include="$(SplRoot)src\manifest\ManifestParser.h" />
     <ClInclude Include="$(SplRoot)src\manifest\ResourceManifest.h" />
     <ClInclude Include="$(SplRoot)src\mods\AssemblyParser.h" />
-    <ClInclude Include="$(SplRoot)src\mods\ModExtractor.h" />
     <ClInclude Include="$(SplRoot)src\mods\ModOverlay.h" />
     <ClInclude Include="$(SplRoot)src\mods\ModPackage.h" />
     <ClInclude Include="$(SplRoot)src\mods\ModsScanner.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModLayout.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModFileTree.h" />
+    <ClInclude Include="$(SplRoot)src\mods\ModCatalog.h" />
     <ClInclude Include="$(SplRoot)src\platform\Win32.h" />
     <ClInclude Include="$(SplRoot)src\resource\Resource.h" />
     <ClInclude Include="$(SplRoot)src\resource\ResourceManager.h" />
@@ -157,6 +162,7 @@
     <ClInclude Include="$(SplRoot)src\util\Glob.h" />
     <ClInclude Include="$(SplRoot)src\util\Hash.h" />
     <ClInclude Include="$(SplRoot)src\util\Strings.h" />
+    <ClInclude Include="$(SplRoot)src\util\FileTree.h" />
   </ItemGroup>
 
   <ItemGroup>

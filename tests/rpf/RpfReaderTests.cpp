@@ -1,3 +1,4 @@
+#include <span>
 #include <string>
 #include <vector>
 
@@ -348,6 +349,53 @@ TEST_CASE("RpfReader: a resource too large for the size field gets its RSC7 head
     CHECK(contents.substr(12, 4) == std::string{"\x0C\x00\x08\xD1", 4});
     CHECK(contents.substr(16) == payload);
     CHECK(opened.GetValue().Enumerate().front().sizeBytes == total);
+
+    const spl::Result<RpfReader::FileInfo> info = opened.GetValue().Stat("big.ytd");
+    REQUIRE(info.HasValue());
+    CHECK(info.GetValue().sizeBytes == total);
+    CHECK(info.GetValue().isStored);
+    CHECK(info.GetValue().isLargeResource);
+    CHECK(info.GetValue().physicalFlags == 0xD108000C);
+
+    // The game reads the archive's own bytes: the size header, not the synthesized RSC7.
+    const spl::Result<std::span<const char>> stored = opened.GetValue().GetStoredBytes("big.ytd");
+    REQUIRE(stored.HasValue());
+    CHECK(std::string{stored.GetValue().data(), stored.GetValue().size()} == sizeHeader + payload);
+
+    const spl::Result<std::vector<std::byte>> prefix = opened.GetValue().ReadPrefix("big.ytd", 4);
+    REQUIRE(prefix.HasValue());
+    CHECK(BytesToString(prefix.GetValue()) == "RSC7");
+}
+
+TEST_CASE("RpfReader: stats, prefixes and stored bytes of ordinary files", "[rpf]")
+{
+    RpfBuilder builder;
+    builder.AddFile("stored.meta", "stored contents");
+    builder.AddCompressedFile("packed.meta", "packed contents");
+    TempDir dir;
+    const spl::Result<RpfReader> opened = OpenBytes(dir, builder.Build());
+    REQUIRE(opened.HasValue());
+    const RpfReader& reader = opened.GetValue();
+
+    const spl::Result<RpfReader::FileInfo> stored = reader.Stat("stored.meta");
+    REQUIRE(stored.HasValue());
+    CHECK(stored.GetValue().sizeBytes == 15);
+    CHECK(stored.GetValue().isStored);
+    CHECK_FALSE(stored.GetValue().isLargeResource);
+    const spl::Result<std::span<const char>> bytes = reader.GetStoredBytes("stored.meta");
+    REQUIRE(bytes.HasValue());
+    CHECK(std::string{bytes.GetValue().data(), bytes.GetValue().size()} == "stored contents");
+
+    const spl::Result<RpfReader::FileInfo> packed = reader.Stat("packed.meta");
+    REQUIRE(packed.HasValue());
+    CHECK(packed.GetValue().sizeBytes == 15);
+    CHECK_FALSE(packed.GetValue().isStored);
+    CHECK(reader.GetStoredBytes("packed.meta").GetError().code == ErrorCode::NotSupported);
+
+    CHECK(BytesToString(reader.ReadPrefix("stored.meta", 6).GetValue()) == "stored");
+    CHECK(BytesToString(reader.ReadPrefix("packed.meta", 6).GetValue()) == "packed");
+    CHECK(BytesToString(reader.ReadPrefix("packed.meta", 99).GetValue()) == "packed contents");
+    CHECK(reader.Stat("missing.meta").GetError().code == ErrorCode::NotFound);
 }
 
 TEST_CASE("RpfReader: opens a stored nested archive in place", "[rpf]")

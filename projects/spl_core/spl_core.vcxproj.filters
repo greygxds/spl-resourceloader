@@ -90,13 +90,19 @@
     <ClCompile Include="$(SplRoot)src\mods\AssemblyParser.cpp">
       <Filter>src\mods</Filter>
     </ClCompile>
-    <ClCompile Include="$(SplRoot)src\mods\ModExtractor.cpp">
-      <Filter>src\mods</Filter>
-    </ClCompile>
     <ClCompile Include="$(SplRoot)src\mods\ModOverlay.cpp">
       <Filter>src\mods</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)src\mods\ModsScanner.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\ModLayout.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\ModFileTree.cpp">
+      <Filter>src\mods</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\mods\ModCatalog.cpp">
       <Filter>src\mods</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)src\resource\Resource.cpp">
@@ -136,6 +142,9 @@
       <Filter>src\util</Filter>
     </ClCompile>
     <ClCompile Include="$(SplRoot)src\util\Strings.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SplRoot)src\util\FileTree.cpp">
       <Filter>src\util</Filter>
     </ClCompile>
   </ItemGroup>
@@ -200,9 +209,6 @@
     <ClInclude Include="$(SplRoot)src\mods\AssemblyParser.h">
       <Filter>src\mods</Filter>
     </ClInclude>
-    <ClInclude Include="$(SplRoot)src\mods\ModExtractor.h">
-      <Filter>src\mods</Filter>
-    </ClInclude>
     <ClInclude Include="$(SplRoot)src\mods\ModOverlay.h">
       <Filter>src\mods</Filter>
     </ClInclude>
@@ -210,6 +216,15 @@
       <Filter>src\mods</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\mods\ModsScanner.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModLayout.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModFileTree.h">
+      <Filter>src\mods</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\mods\ModCatalog.h">
       <Filter>src\mods</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\platform\Win32.h">
@@ -264,6 +279,9 @@
       <Filter>src\util</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\util\Strings.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\util\FileTree.h">
       <Filter>src\util</Filter>
     </ClInclude>
   </ItemGroup>

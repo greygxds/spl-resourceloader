@@ -31,7 +31,7 @@ std::string_view ToString(BridgeState state)
     return "uninitialized";
 }
 
-Result<void> RageBridge::Resolve(const config::LoaderConfig& config)
+Result<void> RageBridge::Resolve()
 {
     if (m_resolved)
     {
@@ -54,18 +54,6 @@ Result<void> RageBridge::Resolve(const config::LoaderConfig& config)
         return MakeError(ErrorCode::NotSupported, "the {} edition is not supported",
                          ToString(m_build.edition));
     }
-    // Decided before anything is hooked, which early init does long before the layout checks.
-    if (m_verification == BuildVerification::NewerUnverified &&
-        !config.loader.allowUnverifiedBuilds)
-    {
-        SPL_LOG_INFO(Rage, "Game build {} ({})", m_build.ToString(), ToString(m_verification));
-        m_state = BridgeState::Unsupported;
-        return MakeError(ErrorCode::NotSupported,
-                         "build {} is newer than {}, the newest verified build, and "
-                         "loader.allow_unverified_builds is false",
-                         m_build.build, GetNewestVerifiedBuild());
-    }
-
     const memory::Module image = memory::Module::Main();
     SPL_LOG_DEBUG(Rage, "{} at {:#x}, {} bytes, {} scan region(s)", image.GetFileName(),
                   image.GetBase(), image.GetSizeBytes(), image.GetScanRegions().size());
@@ -85,6 +73,7 @@ Result<void> RageBridge::Resolve(const config::LoaderConfig& config)
         return addresses.GetError();
     }
     m_addresses = addresses.GetValue();
+    m_memoryBudget.Initialize(m_addresses);
     m_resolved = true;
     return {};
 }
@@ -104,7 +93,7 @@ Result<void> RageBridge::PrepareFileDevices()
 
 Result<void> RageBridge::Initialize(const config::LoaderConfig& config)
 {
-    if (Result<void> resolved = Resolve(config); !resolved)
+    if (Result<void> resolved = Resolve(); !resolved)
     {
         return resolved;
     }

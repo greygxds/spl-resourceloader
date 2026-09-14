@@ -97,24 +97,19 @@ TEST_CASE("ResourceManager: disabled resources are kept but not enabled", "[reso
     REQUIRE(manager.Find("bravo")->IsEnabled());
 }
 
-TEST_CASE("ResourceManager: auto_discover off loads only the priority list", "[resource]")
+TEST_CASE("ResourceManager: resources disabled loads none of them", "[resource]")
 {
     TempTree tree;
     tree.AddResource("alpha");
     tree.AddResource("bravo");
-    tree.AddResource("charlie");
 
     LoaderConfig config;
-    config.resources.autoDiscover = false;
-    config.resources.priority = {"charlie"};
+    config.resources.enabled = false;
 
     ResourceManager manager;
     manager.Discover(config, tree.Root());
 
-    REQUIRE(manager.GetResources().size() == 3);
-    REQUIRE(manager.CountEnabled() == 1);
-    REQUIRE(manager.Find("charlie")->IsEnabled());
-    REQUIRE(manager.Find("alpha")->GetStateReason() == "not in priority list");
+    REQUIRE(manager.GetResources().empty());
 }
 
 TEST_CASE("ResourceManager: Find is case-insensitive and misses cleanly", "[resource]")
@@ -239,15 +234,14 @@ TEST_CASE("ResourceManager: an adopted name that is taken is skipped", "[resourc
     REQUIRE(LoadOrder(manager) == std::vector<std::string>{"alpha"});
 }
 
-TEST_CASE("ResourceManager: resource disabled and auto_discover settings leave mods alone",
-          "[resource]")
+TEST_CASE("ResourceManager: resource disabled and enabled settings leave mods alone", "[resource]")
 {
     TempTree tree;
     tree.WriteFile("cache/mymod/fxmanifest.lua", "game 'gta5'\n");
 
     LoaderConfig config;
     config.resources.disabled = {"mymod"};
-    config.resources.autoDiscover = false;
+    config.resources.enabled = false;
 
     ResourceManager manager;
     manager.Discover(config, tree.Root());
