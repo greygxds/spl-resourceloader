@@ -1,0 +1,57 @@
+name: resourceLoader doesn't start
+description: Nothing happens, the log is missing, or the log says the loader never initialized.
+labels: [install]
+body:
+  - type: checkboxes
+    id: install
+    attributes:
+      label: Installation
+      description: Check the install steps in the README again before opening this.
+      options:
+        - label: My game is GTA V Legacy, not Enhanced.
+          required: true
+        - label: "`ScriptHookV.dll` and `dinput8.dll` are next to `GTA5.exe`."
+          required: true
+        - label: "`resourceLoader.asi` and the `resourceLoader` folder are next to `GTA5.exe`."
+          required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Steam
+        - Rockstar Games Launcher
+        - Epic Games
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: Game version
+      description: From the Details tab of `GTA5.exe` properties, e.g. 1.0.3570.0.
+    validations:
+      required: true
+  - type: input
+    id: shv-version
+    attributes:
+      label: ScriptHookV version
+    validations:
+      required: true
+  - type: input
+    id: loader-version
+    attributes:
+      label: resourceLoader version
+      description: The release you downloaded, e.g. build-2026.09.12_57.
+    validations:
+      required: true
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: resourceLoader.log
+      description: If `<GTA V>\resourceLoader\resourceLoader.log` exists, attach it (drag the file into this box).

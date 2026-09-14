@@ -1,0 +1,20 @@
+name: Feature request
+description: Something resourceLoader should support.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lua scripts are planned. NUI/CEF and server-side scripts will not be supported.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What do you want to do
+      description: The resource, mod or workflow this is for.
+    validations:
+      required: true
+  - type: textarea
+    id: fivem
+    attributes:
+      label: How FiveM does it
+      description: If FiveM supports this, a link to its docs or an example resource.

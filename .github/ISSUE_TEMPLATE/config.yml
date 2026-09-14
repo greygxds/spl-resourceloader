@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation guide and FAQ
+    url: https://github.com/greygxds/spl-resourceloader#how-to-install
+    about: Most "it doesn't work" reports are an install problem. Read this first.
+  - name: FiveM / Cfx.re problems
+    url: https://forum.cfx.re/
+    about: resourceLoader is not affiliated with FiveM. Problems with FiveM itself do not belong here.

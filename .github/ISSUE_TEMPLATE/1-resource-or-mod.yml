@@ -1,0 +1,34 @@
+name: Resource or mod doesn't work
+description: A resource or .rpf mod doesn't load, or loads but doesn't work as expected.
+labels: [bug]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is it?
+      options:
+        - Resource (folder in resourceLoader\resources)
+        - Mod (.rpf in resourceLoader\mods)
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Download link
+      description: Where to get the resource or mod, so it can be reproduced. If it can't be shared, paste its fxmanifest.lua and a listing of its files below instead.
+    validations:
+      required: true
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: What you expected, and what you see instead (not listed in the log, no effect in game, missing textures, ...).
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: resourceLoader.log
+      description: Attach `<GTA V>\resourceLoader\resourceLoader.log` from a session where the problem happened (drag the file into this box).
+    validations:
+      required: true

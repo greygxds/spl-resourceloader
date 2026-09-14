@@ -1,0 +1,26 @@
+name: Game crash
+description: The game crashes with resourceLoader installed.
+labels: [crash]
+body:
+  - type: textarea
+    id: culprit
+    attributes:
+      label: Which resource or mod causes it
+      description: Remove resources and mods until the game stops crashing, then name the one that brings the crash back (with a download link if possible). If it crashes with nothing loaded, say so.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happens
+      description: What you were doing just before the crash.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: crash.txt, crash.dmp and resourceLoader.log
+      description: |
+        Attach these from `<GTA V>\resourceLoader\` (drag the files into this box).
+    validations:
+      required: true
