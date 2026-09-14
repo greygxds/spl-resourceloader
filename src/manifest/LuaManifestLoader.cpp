@@ -79,6 +79,9 @@ void* BoundedAlloc(void* ud, void* ptr, std::size_t osize, std::size_t nsize)
 /// Runs every few instructions. It is the only thing that stops `while true do end`.
 void InstructionBudgetHook(lua_State* state, lua_Debug* /*activation*/)
 {
+    // From now on every instruction fails, so a pcall that swallows this error cannot loop back
+    // into another budget: the first instruction outside it raises again.
+    lua_sethook(state, InstructionBudgetHook, LUA_MASKCOUNT, 1);
     luaL_error(state, "manifest exceeded its instruction budget (an endless loop?)");
 }
 
