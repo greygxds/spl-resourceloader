@@ -71,6 +71,15 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "build_number=$buildNumber" >> $env:GITHUB_OUTPUT
 
+      # The cheap checks first, so a formatting slip fails in seconds rather than after the build.
+      - name: Check formatting
+        shell: pwsh
+        run: tools/format.ps1 -Check
+
+      - name: Check project files
+        shell: pwsh
+        run: tools/check-projects.ps1
+
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
 
@@ -98,14 +107,6 @@ jobs:
         run: |
           dist/Release/spl_tests.exe --reporter compact
           if ($LASTEXITCODE -ne 0) { throw "spl_tests failed with exit code $LASTEXITCODE" }
-
-      - name: Check formatting
-        shell: pwsh
-        run: tools/format.ps1 -Check
-
-      - name: Check project files
-        shell: pwsh
-        run: tools/check-projects.ps1
 
       - name: Package
         shell: pwsh
