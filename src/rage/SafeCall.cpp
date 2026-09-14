@@ -1,5 +1,6 @@
 #include "rage/SafeCall.h"
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 
@@ -13,7 +14,7 @@ namespace spl::rage
 {
 namespace
 {
-bool g_faulted = false;
+std::atomic<bool> g_faulted{false}; // set by whichever thread faults, read by the game thread
 thread_local int g_gameCallDepth = 0;
 
 /// The module an address belongs to, or nullptr when it belongs to none.
@@ -90,7 +91,7 @@ bool InvokeGuarded(const char* what, void (*thunk)(void*), void* context)
         }
         __except (FaultFilter(what, GetExceptionInformation()))
         {
-            g_faulted = true;
+            g_faulted.store(true);
         }
     }
     __finally
@@ -108,11 +109,11 @@ bool IsInsideGameCall()
 
 bool HasFaulted()
 {
-    return g_faulted;
+    return g_faulted.load();
 }
 
 void ResetFaultState()
 {
-    g_faulted = false;
+    g_faulted.store(false);
 }
 } // namespace spl::rage
