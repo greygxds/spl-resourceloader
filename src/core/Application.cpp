@@ -563,6 +563,11 @@ void Application::DiscoverMods(std::span<const std::string> quarantined)
     {
         SPL_LOG_WARNING(Mods, warning);
     }
+    for (const std::string& ignored : scanned.ignoredArchives)
+    {
+        SPL_LOG_INFO(Mods, "'{}' is not loaded: mod archives have to end in \".rpf\", lower case",
+                     ignored);
+    }
     if (scanned.mods.empty())
     {
         return;

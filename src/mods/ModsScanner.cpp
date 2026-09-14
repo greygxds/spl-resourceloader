@@ -43,6 +43,10 @@ ModsScanner::Result ModsScanner::Scan(const std::filesystem::path& modsRoot)
         {
             archives.push_back(entry->path());
         }
+        else if (util::EqualsIgnoreCase(util::ToUtf8(entry->path().extension()), ".rpf"))
+        {
+            result.ignoredArchives.push_back(util::ToUtf8(entry->path().filename()));
+        }
     }
     if (error)
     {
