@@ -176,6 +176,19 @@ TEST_CASE("LuaManifestLoader: an endless loop is stopped", "[manifest][lua]")
     REQUIRE(result.document.Has("game"));
 }
 
+TEST_CASE("LuaManifestLoader: an endless loop inside pcall is stopped too", "[manifest][lua]")
+{
+    LuaSandboxLimits limits;
+    limits.instructionBudget = 10'000;
+
+    const ParseResult result = LoadManifestWithLua(
+        "game 'gta5'\nwhile true do pcall(function() while true do end end) end", "fxmanifest.lua",
+        limits);
+
+    REQUIRE(result.fatal);
+    REQUIRE(Mentions(result, "instruction budget"));
+}
+
 TEST_CASE("LuaManifestLoader: runaway allocation is stopped", "[manifest][lua]")
 {
     LuaSandboxLimits limits;
