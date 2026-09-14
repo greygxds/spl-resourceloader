@@ -75,28 +75,28 @@ public:
                                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (mapped->m_file == INVALID_HANDLE_VALUE)
         {
-            return MakeError(ErrorCode::Io, "could not open '{}'", path.string());
+            return MakeError(ErrorCode::Io, "could not open '{}'", util::ToUtf8(path));
         }
         LARGE_INTEGER size{};
         if (::GetFileSizeEx(mapped->m_file, &size) == 0)
         {
-            return MakeError(ErrorCode::Io, "could not read the size of '{}'", path.string());
+            return MakeError(ErrorCode::Io, "could not read the size of '{}'", util::ToUtf8(path));
         }
         if (size.QuadPart < static_cast<LONGLONG>(RpfLayout::kHeaderSizeBytes))
         {
             return MakeError(ErrorCode::Parse, "'{}' is too small to be an RPF archive",
-                             path.string());
+                             util::ToUtf8(path));
         }
         mapped->m_mapping =
             ::CreateFileMappingW(mapped->m_file, nullptr, PAGE_READONLY, 0, 0, nullptr);
         if (mapped->m_mapping == nullptr)
         {
-            return MakeError(ErrorCode::Io, "could not map '{}'", path.string());
+            return MakeError(ErrorCode::Io, "could not map '{}'", util::ToUtf8(path));
         }
         mapped->m_view = ::MapViewOfFile(mapped->m_mapping, FILE_MAP_READ, 0, 0, 0);
         if (mapped->m_view == nullptr)
         {
-            return MakeError(ErrorCode::Io, "could not map '{}'", path.string());
+            return MakeError(ErrorCode::Io, "could not map '{}'", util::ToUtf8(path));
         }
         mapped->m_size = static_cast<std::size_t>(size.QuadPart);
         return std::shared_ptr<const MappedFile>{std::move(mapped)};
@@ -254,7 +254,7 @@ Result<RpfReader> RpfReader::OpenNested(std::string_view path) const
 Result<RpfReader> RpfReader::Parse(std::shared_ptr<const ArchiveBytes> storage,
                                    std::span<const char> bytes, std::filesystem::path displayPath)
 {
-    const std::string shown = displayPath.string();
+    const std::string shown = util::ToUtf8(displayPath);
     if (bytes.size() < RpfLayout::kHeaderSizeBytes)
     {
         return MakeError(ErrorCode::Parse, "'{}' is too small to be an RPF archive", shown);
@@ -364,14 +364,15 @@ Result<const RpfEntryView*> RpfReader::FindFile(std::string_view path) const
     }
     else
     {
-        return MakeError(ErrorCode::NotFound, "'{}' is not in '{}'", relative, m_path.string());
+        return MakeError(ErrorCode::NotFound, "'{}' is not in '{}'", relative,
+                         util::ToUtf8(m_path));
     }
 
     const RpfEntryView& entry = m_entries[index];
     if (RpfIsDirectory(entry))
     {
         return MakeError(ErrorCode::InvalidArgument, "'{}' in '{}' is a directory", relative,
-                         m_path.string());
+                         util::ToUtf8(m_path));
     }
     return &entry;
 }
@@ -388,13 +389,13 @@ Result<std::span<const char>> RpfReader::Locate(std::string_view path,
         if (length < RpfLayout::kHeaderSizeBytes)
         {
             return MakeError(ErrorCode::Parse, "'{}' in '{}' has a corrupt size header", path,
-                             m_path.string());
+                             util::ToUtf8(m_path));
         }
     }
     if (begin + length > m_bytes.size())
     {
         return MakeError(ErrorCode::Parse, "'{}' in '{}' claims bytes past the end of file", path,
-                         m_path.string());
+                         util::ToUtf8(m_path));
     }
     return std::span{m_bytes.data() + begin, static_cast<std::size_t>(length)};
 }
@@ -476,7 +477,7 @@ Result<std::span<const char>> RpfReader::GetStoredBytes(std::string_view path) c
     if (!RpfIsStored(*found.GetValue()))
     {
         return MakeError(ErrorCode::NotSupported, "'{}' in '{}' is compressed", path,
-                         m_path.string());
+                         util::ToUtf8(m_path));
     }
     return Locate(path, *found.GetValue());
 }
@@ -488,7 +489,7 @@ Result<std::vector<std::byte>> RpfReader::Inflate(std::string_view path,
     if (entry.virtFlags == 0 || entry.virtFlags > kMaxDecompressedBytes)
     {
         return MakeError(ErrorCode::Parse, "'{}' in '{}' claims an impossible size", path,
-                         m_path.string());
+                         util::ToUtf8(m_path));
     }
     Result<std::span<const char>> located = Locate(path, entry);
     if (!located)
@@ -500,7 +501,8 @@ Result<std::vector<std::byte>> RpfReader::Inflate(std::string_view path,
         contents.data(), contents.size(), located.GetValue().data(), located.GetValue().size(), 0);
     if (written != contents.size())
     {
-        return MakeError(ErrorCode::Parse, "'{}' in '{}' failed to inflate", path, m_path.string());
+        return MakeError(ErrorCode::Parse, "'{}' in '{}' failed to inflate", path,
+                         util::ToUtf8(m_path));
     }
     return contents;
 }
