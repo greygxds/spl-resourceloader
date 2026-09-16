@@ -40,6 +40,9 @@ public:
     /// std::nullopt when no module of that name is loaded.
     [[nodiscard]] static std::optional<Module> Find(std::wstring_view name);
 
+    /// The loaded module whose image holds address, or std::nullopt when none does.
+    [[nodiscard]] static std::optional<Module> FindContaining(uintptr_t address);
+
     /// A PE image laid out in memory by someone other than the loader, such as spl_sigcheck
     /// mapping GTA5.exe from disk. base must stay valid for as long as the Module is used.
     [[nodiscard]] static std::optional<Module> FromImage(void* base, std::filesystem::path path);

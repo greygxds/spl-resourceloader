@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -31,6 +32,16 @@ TEST_CASE("Module: Contains covers the image and nothing else", "[memory]")
     CHECK_FALSE(main.Contains(main.GetBase() - 1));
     CHECK_FALSE(main.Contains(main.GetBase() + main.GetSizeBytes()));
     CHECK_FALSE(main.Contains(0));
+}
+
+TEST_CASE("Module: FindContaining finds the module an address belongs to", "[memory]")
+{
+    const Module main = Module::Main();
+
+    const std::optional<Module> owner = Module::FindContaining(main.GetBase() + 1);
+    REQUIRE(owner.has_value());
+    CHECK(owner->GetBase() == main.GetBase());
+    CHECK_FALSE(Module::FindContaining(0).has_value());
 }
 
 TEST_CASE("Module: the code section is found and executable", "[memory]")

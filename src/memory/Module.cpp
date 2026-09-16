@@ -106,6 +106,18 @@ std::optional<Module> Module::Find(std::wstring_view name)
     return FromBase(handle);
 }
 
+std::optional<Module> Module::FindContaining(uintptr_t address)
+{
+    HMODULE handle = nullptr;
+    const DWORD flags =
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    if (::GetModuleHandleExW(flags, reinterpret_cast<LPCWSTR>(address), &handle) == FALSE)
+    {
+        return std::nullopt;
+    }
+    return FromBase(handle);
+}
+
 const Section* Module::FindSection(std::string_view name) const
 {
     const auto match = std::ranges::find_if(m_sections, [name](const Section& section)

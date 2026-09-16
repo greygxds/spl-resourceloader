@@ -467,9 +467,18 @@ Result<void> FileDeviceInterface::Verify(const memory::Module& image) const
         const uintptr_t vtable = GetVtableAddress(reinterpret_cast<uintptr_t>(device));
         if (!image.Contains(vtable))
         {
-            return MakeError(ErrorCode::NotFound,
-                             "the device at '{}' has vtable {:#x}, which is outside {}", mount,
-                             vtable, image.GetFileName());
+            // Another ASI may mount its own device here (RageOpenV does, at both mount points).
+            const std::optional<memory::Module> owner = memory::Module::FindContaining(vtable);
+            if (!owner)
+            {
+                return MakeError(
+                    ErrorCode::NotFound,
+                    "the device at '{}' has vtable {:#x}, which is in no loaded module", mount,
+                    vtable);
+            }
+            SPL_LOG_INFO(Rage, "Device at '{}' was mounted by another module ({}+{:#x})", mount,
+                         owner->GetFileName(), vtable - owner->GetBase());
+            continue;
         }
         // GetName's slot is the one ordinal we are least sure of, so it is logged, not trusted.
         SPL_LOG_DEBUG(Rage, "Device at '{}' is {}+{:#x}, reported name '{}'", mount,
