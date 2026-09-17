@@ -16,6 +16,8 @@
 #include "memory/PatternScanner.h"
 #include "rage/SafeCall.h"
 #include "rage/signatures/SignatureSpec.h"
+#include "rage/types/MapStoreTypes.h"
+#include "util/Hash.h"
 
 namespace spl::rage
 {
@@ -28,6 +30,7 @@ constexpr std::string_view kLoadDefDatPatch = "CDataFileMgr::LoadDefDatCall";
 
 constexpr std::string_view kSortRelativeDevicesPatch = "rage::fiDevice::SortRelativeDevicesCall";
 constexpr std::string_view kMountLimitPatch = "rage::fiDevice::MountLimit";
+constexpr std::string_view kStartupMapGroupPatch = "StartupMapGroup";
 
 constexpr uint8_t kCallOpcode = 0xE8;
 constexpr std::size_t kCallLengthBytes = 5;
@@ -35,6 +38,13 @@ constexpr std::size_t kCallLengthBytes = 5;
 /// FiveM multiplies the limit by 15 (HookInitialMount.cpp:217); mods add four mounts each.
 constexpr uint32_t kVanillaMountLimit = 100;
 constexpr uint32_t kRaisedMountLimit = kVanillaMountLimit * 15;
+
+/// An imm32 as the bytes it is stored as.
+[[nodiscard]] std::array<uint8_t, 4> LittleEndianBytes(uint32_t value)
+{
+    return {static_cast<uint8_t>(value), static_cast<uint8_t>(value >> 8),
+            static_cast<uint8_t>(value >> 16), static_cast<uint8_t>(value >> 24)};
+}
 
 [[nodiscard]] std::string DescribeAddress(uintptr_t address)
 {
@@ -198,14 +208,8 @@ void InitHooks::InstallMountPatches(const GameAddresses& addresses)
 
     if (addresses.fiDeviceMountLimit != 0)
     {
-        const auto toBytes = [](uint32_t value)
-        {
-            return std::array<uint8_t, 4>{
-                static_cast<uint8_t>(value), static_cast<uint8_t>(value >> 8),
-                static_cast<uint8_t>(value >> 16), static_cast<uint8_t>(value >> 24)};
-        };
-        const std::array<uint8_t, 4> expected = toBytes(kVanillaMountLimit);
-        const std::array<uint8_t, 4> raised = toBytes(kRaisedMountLimit);
+        const std::array<uint8_t, 4> expected = LittleEndianBytes(kVanillaMountLimit);
+        const std::array<uint8_t, 4> raised = LittleEndianBytes(kRaisedMountLimit);
         if (Result<void> applied = m_patches.Apply(std::string{kMountLimitPatch},
                                                    addresses.fiDeviceMountLimit, raised, expected);
             !applied)
@@ -219,6 +223,29 @@ void InitHooks::InstallMountPatches(const GameAddresses& addresses)
                           DescribeAddress(addresses.fiDeviceMountLimit), kRaisedMountLimit);
         }
     }
+}
+
+Result<void> InitHooks::InstallMultiplayerMapsPatch(const GameAddresses& addresses)
+{
+    if (addresses.startupMapGroup == 0)
+    {
+        return MakeError(ErrorCode::NotFound, "signature '{}' did not resolve",
+                         kStartupMapGroupPatch);
+    }
+    const std::array<uint8_t, 4> story =
+        LittleEndianBytes(util::JoaatLower(ContentGroupLayout::kStoryMapGroup));
+    const std::array<uint8_t, 4> multiplayer =
+        LittleEndianBytes(util::JoaatLower(ContentGroupLayout::kMultiplayerMapGroup));
+    if (Result<void> applied = m_patches.Apply(std::string{kStartupMapGroupPatch},
+                                               addresses.startupMapGroup, multiplayer, story);
+        !applied)
+    {
+        return applied;
+    }
+    SPL_LOG_DEBUG(Hook, "Patch '{}' applied at {} ({} -> {})", kStartupMapGroupPatch,
+                  DescribeAddress(addresses.startupMapGroup), ContentGroupLayout::kStoryMapGroup,
+                  ContentGroupLayout::kMultiplayerMapGroup);
+    return {};
 }
 
 void InitHooks::SetLevelMetas(LevelMetas metas)

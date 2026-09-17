@@ -12,6 +12,7 @@
 #include "rage/GameAddresses.h"
 #include "rage/GameBuild.h"
 #include "rage/StreamingInterface.h"
+#include "rage/types/MapStoreTypes.h"
 #include "rage/types/StreamingTypes.h"
 
 namespace spl::rage
@@ -20,7 +21,7 @@ namespace spl::rage
 enum class MapReloadMethod
 {
     ChangeSetReplay,   ///< FiveM's ReloadMapStoreNative: patched LoadChangeSet, map store only
-    ContentGroupToggle ///< disable and re-enable GROUP_MAP_SP: heavier, but no code patching
+    ContentGroupToggle ///< disable and re-enable the active map group: heavier, but no patching
 };
 
 [[nodiscard]] std::string_view ToString(MapReloadMethod method);
@@ -40,6 +41,13 @@ class MapStoreReloader
 {
 public:
     void Initialize(const GameAddresses& addresses, const GameBuild& build);
+
+    /// The map group the game runs with, which a ContentGroupToggle reload toggles. Story mode's
+    /// unless streaming.mp_maps switched the game to GTA Online's.
+    void SetMapGroup(std::string_view group)
+    {
+        m_mapGroup = group;
+    }
 
     /// Proves that at least one rebuild method and the collision preload are usable. An error
     /// disables map reloads, nothing else.
@@ -85,5 +93,6 @@ private:
     uintptr_t m_enableContentGroup = 0;
     uintptr_t m_clearContentCache = 0;
     uint32_t m_build = 0;
+    std::string_view m_mapGroup = ContentGroupLayout::kStoryMapGroup; ///< always a literal
 };
 } // namespace spl::rage

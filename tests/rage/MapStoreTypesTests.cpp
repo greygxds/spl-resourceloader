@@ -69,3 +69,9 @@ TEST_CASE("MapStoreTypes: the story map group hashes to what the game pushes", "
     // FiveM EnableMPMapData.cpp:30 patches "mov edx, 0x578F99E2" at the game's own call site.
     CHECK(spl::util::JoaatLower(ContentGroupLayout::kStoryMapGroup) == 0x578F99E2);
 }
+
+TEST_CASE("MapStoreTypes: the multiplayer map group hashes to what FiveM finds", "[rage]")
+{
+    // FiveM LoadStreamingFile.cpp:3731 anchors on "79 91 C8 BC", the GROUP_MAP immediate.
+    CHECK(spl::util::JoaatLower(ContentGroupLayout::kMultiplayerMapGroup) == 0xBCC89179);
+}

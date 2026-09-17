@@ -64,6 +64,30 @@ Result<void> RageStreamingBackend::PrepareResourceRoot(const std::filesystem::pa
     return m_bridge->Files().MountResourcesRoot(root);
 }
 
+bool RageStreamingBackend::HasGameSlot(const streaming::PlannedAsset& asset)
+{
+    if (!m_bridge->IsReady())
+    {
+        return false;
+    }
+    const std::optional<StreamingModule> module =
+        m_bridge->Streaming().GetModule(streaming::GetModuleExtension(asset.type, asset.extension));
+    if (!module)
+    {
+        return false;
+    }
+    const std::optional<LocalSlot> slot = module->FindSlot(asset.streamingName);
+    if (!slot)
+    {
+        return false;
+    }
+    const std::optional<StreamingDataEntry> entry =
+        m_bridge->Streaming().GetEntry(GlobalIndex{module->BaseIndex() + slot->value});
+    // A loose file's slot is not the game's: taking it over would not replace anything the
+    // game placed.
+    return entry && entry->handle != 0 && !IsRawHandle(StreamingHandle{entry->handle});
+}
+
 RegistrationOutcome RageStreamingBackend::RegisterAsset(const streaming::PlannedAsset& asset)
 {
     if (!m_bridge->IsReady())
@@ -187,6 +211,13 @@ RageStreamingBackend::FindSlotBudget(const StreamingModule& module)
         found = m_slotBudgets.emplace(module.Raw(), budget).first;
         SPL_LOG_DEBUG(Rage, "Store at {:#x}: {} of {} slots in use before registration",
                       module.Raw(), budget.used, budget.size);
+        if (budget.size != 0 && budget.used * 10 >= budget.size * 9)
+        {
+            SPL_LOG_WARNING(Rage,
+                            "Store at {:#x} is almost full before registration ({} of {} slots "
+                            "in use), so resources may be refused",
+                            module.Raw(), budget.used, budget.size);
+        }
     }
     return found->second.size != 0 ? &found->second : nullptr;
 }
@@ -611,6 +642,16 @@ RageStreamingBackend::ReassertAsset(const streaming::RegisteredAsset& asset)
     if (!module)
     {
         return std::nullopt;
+    }
+    // A map layer the game turned off (ON_ENTER_SP) frees its slots, and one can come back
+    // holding another file. Only a slot that still goes by our name is ours to take back.
+    if (IsMapDataType(asset.type))
+    {
+        const std::optional<LocalSlot> named = module->FindSlot(WithoutExtension(asset.fileName));
+        if (!named || module->BaseIndex() + named->value != asset.globalIndex.value)
+        {
+            return std::nullopt;
+        }
     }
     if (asset.type == streaming::AssetType::MapTypes &&
         !m_bridge->Overrides().InstallMapTypesHooks())

@@ -68,6 +68,11 @@ public:
         return m_levelMetasHooked;
     }
 
+    /// Makes the game enable GROUP_MAP instead of GROUP_MAP_SP when it sets up its map layer, so
+    /// story mode starts with GTA Online's maps as FiveM does. Must go in before the game runs
+    /// its init, and is checked against the original bytes first.
+    [[nodiscard]] Result<void> InstallMultiplayerMapsPatch(const GameAddresses& addresses);
+
     /// Set once the resources are mounted; read when the game gets to its level load.
     void SetLevelMetas(LevelMetas metas);
 

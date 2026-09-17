@@ -1,6 +1,7 @@
 #include "streaming/StreamingManager.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <initializer_list>
@@ -19,11 +20,30 @@
 #include "streaming/AssetType.h"
 #include "streaming/StreamingBackend.h"
 #include "streaming/StreamingPlan.h"
+#include "util/Glob.h"
+#include "util/Strings.h"
 
 namespace spl::streaming
 {
 namespace
 {
+/// The collision LOD prefixes a .ybn can carry ("hi@bh1_05_0.ybn"). The MP layer keeps them in
+/// front of its own prefix ("hi@hei_bh1_05_0.ybn").
+constexpr std::array<std::string_view, 2> kCollisionLodPrefixes = {"hi@", "ma@"};
+
+[[nodiscard]] std::string_view WithoutCollisionLodPrefix(std::string_view fileName)
+{
+    for (std::string_view prefix : kCollisionLodPrefixes)
+    {
+        if (fileName.size() > prefix.size() &&
+            util::EqualsIgnoreCase(fileName.substr(0, prefix.size()), prefix))
+        {
+            return fileName.substr(prefix.size());
+        }
+    }
+    return fileName;
+}
+
 /// "ytd 3, ydr 1", in asset-type table order, counting only the types that occur.
 std::string DescribeTypeCounts(const AssetRegistry& registry)
 {
@@ -123,6 +143,7 @@ void StreamingManager::Start(const StreamingPlan& plan, IStreamingBackend& backe
     m_busy = false;
     m_work = {};
     m_timings.clear();
+    m_waitingAssets.clear();
     m_registry.Clear();
     m_stage = StreamingStage::Mount;
 }
@@ -463,6 +484,63 @@ void StreamingManager::Finish()
     Enter(StreamingStage::Done);
     SPL_LOG_DEBUG(Streaming, "Streaming ready: {} asset(s) registered ({})", m_registry.Size(),
                   DescribeTypeCounts(m_registry));
+    if (!m_waitingAssets.empty())
+    {
+        SPL_LOG_INFO(Streaming,
+                     "{} MP-layer map file(s) wait for GTA Online's map layer, and load once a "
+                     "script or streaming.mp_maps enables it",
+                     m_waitingAssets.size());
+    }
+}
+
+bool StreamingManager::MustWaitForGameSlot(const PlannedAsset& asset) const
+{
+    if (asset.type != AssetType::MapData && asset.type != AssetType::StaticBounds)
+    {
+        return false;
+    }
+    const std::string_view name = WithoutCollisionLodPrefix(asset.fileName);
+    const bool matches =
+        std::ranges::any_of(m_options.waitForGameSlot, [&](const std::string& pattern)
+                            { return util::MatchesGlob(pattern, name); });
+    return matches && !m_backend->HasGameSlot(asset);
+}
+
+std::size_t StreamingManager::RegisterWaitingAssets()
+{
+    if (m_backend == nullptr || m_stage != StreamingStage::Done || m_waitingAssets.empty())
+    {
+        return 0;
+    }
+
+    std::size_t registered = 0;
+    std::erase_if(m_waitingAssets,
+                  [&](const PlannedAsset* waiting)
+                  {
+                      const PlannedAsset& asset = *waiting;
+                      if (!m_backend->HasGameSlot(asset))
+                      {
+                          return false;
+                      }
+                      // Whatever happens now is final: only a missing slot is worth waiting for.
+                      BeginWork(asset.resourceName, asset.fileName, "registering");
+                      const RegistrationOutcome outcome = m_backend->RegisterAsset(asset);
+                      --m_totals.waiting;
+                      RecordOutcome(asset, outcome, m_totals);
+                      if (outcome.status == RegistrationStatus::Registered)
+                      {
+                          ++registered;
+                      }
+                      return true;
+                  });
+
+    if (registered > 0)
+    {
+        SPL_LOG_INFO(Streaming,
+                     "Registered {} MP-layer map file(s) over the game's own; {} still waiting",
+                     registered, m_waitingAssets.size());
+    }
+    return registered;
 }
 
 std::size_t StreamingManager::ReassertRegistrations()
@@ -551,33 +629,19 @@ void StreamingManager::RunRegistrations(std::span<const PlannedAsset> assets, St
             continue;
         }
 
-        BeginWork(asset.resourceName, asset.fileName, "registering");
-        const RegistrationOutcome outcome = m_backend->RegisterAsset(asset);
-
-        switch (outcome.status)
+        // Registered now, an MP-layer file has no game copy to replace, so it would be placed as
+        // a map of its own on top of the story-mode layer it was never meant to patch.
+        if (MustWaitForGameSlot(asset))
         {
-            using enum RegistrationStatus;
-        case Registered:
-            ++m_stageTotals.registered;
-            m_registry.Add(ToRegisteredAsset(asset, outcome));
-            m_registry.PushHandle(outcome.globalIndex, outcome.handle, outcome.replacedHandle);
-            LogRegistration(asset, outcome);
-            break;
-        case Skipped:
-            ++m_stageTotals.skipped;
-            SPL_LOG_WARNING(Streaming, "{}", outcome.message);
-            break;
-        case KeptGameAsset:
-            // The user asked for exactly this, so it is not something to warn about.
-            ++m_stageTotals.skipped;
-            SPL_LOG_DEBUG(Streaming, "{}", outcome.message);
-            break;
-        case Failed:
-            // One bad asset never stops the rest: the game is perfectly happy without it.
-            ++m_stageTotals.failed;
-            SPL_LOG_ERROR(Streaming, "{}", outcome.message);
-            break;
+            ++m_stageTotals.waiting;
+            m_waitingAssets.push_back(&asset);
+            SPL_LOG_DEBUG(Streaming, "'{}' from '{}' waits for the game's own '{}'", asset.fileName,
+                          asset.resourceName, asset.streamingName);
+            continue;
         }
+
+        BeginWork(asset.resourceName, asset.fileName, "registering");
+        RecordOutcome(asset, m_backend->RegisterAsset(asset), m_stageTotals);
     }
 
     if (m_cursor < assets.size())
@@ -589,6 +653,7 @@ void StreamingManager::RunRegistrations(std::span<const PlannedAsset> assets, St
     m_totals.skipped += m_stageTotals.skipped;
     m_totals.failed += m_stageTotals.failed;
     m_totals.deferred += m_stageTotals.deferred;
+    m_totals.waiting += m_stageTotals.waiting;
     if (!assets.empty())
     {
         LogStageSummary(ToString(m_stage), m_stageTotals);
@@ -596,14 +661,45 @@ void StreamingManager::RunRegistrations(std::span<const PlannedAsset> assets, St
     Enter(next);
 }
 
+void StreamingManager::RecordOutcome(const PlannedAsset& asset, const RegistrationOutcome& outcome,
+                                     RegistrationTotals& totals)
+{
+    switch (outcome.status)
+    {
+        using enum RegistrationStatus;
+    case Registered:
+        ++totals.registered;
+        m_registry.Add(ToRegisteredAsset(asset, outcome));
+        m_registry.PushHandle(outcome.globalIndex, outcome.handle, outcome.replacedHandle);
+        LogRegistration(asset, outcome);
+        break;
+    case Skipped:
+        ++totals.skipped;
+        SPL_LOG_WARNING(Streaming, "{}", outcome.message);
+        break;
+    case KeptGameAsset:
+        // The user asked for exactly this, so it is not something to warn about.
+        ++totals.skipped;
+        SPL_LOG_DEBUG(Streaming, "{}", outcome.message);
+        break;
+    case Failed:
+        // One bad asset never stops the rest: the game is perfectly happy without it.
+        ++totals.failed;
+        SPL_LOG_ERROR(Streaming, "{}", outcome.message);
+        break;
+    }
+}
+
 void StreamingManager::LogStageSummary(std::string_view stageName,
                                        const RegistrationTotals& totals) const
 {
     SPL_LOG_DEBUG(
-        Streaming, "Registered {} asset(s) in {}, skipped {}, failed {}{}", totals.registered,
+        Streaming, "Registered {} asset(s) in {}, skipped {}, failed {}{}{}", totals.registered,
         stageName, totals.skipped, totals.failed,
         totals.deferred > 0
             ? fmt::format(", {} of a type this version cannot register yet", totals.deferred)
-            : std::string{});
+            : std::string{},
+        totals.waiting > 0 ? fmt::format(", {} waiting for the game's map layer", totals.waiting)
+                           : std::string{});
 }
 } // namespace spl::streaming

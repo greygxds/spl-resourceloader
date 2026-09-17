@@ -58,6 +58,7 @@ Result<GameAddresses> GameAddresses::Build(const ResolvedSignatures& resolved)
             Take(resolved, "CExtraContentManager::EnableContentGroup"),
         .extraContentManagerClearContentCache =
             Take(resolved, "CExtraContentManager::ClearContentCache"),
+        .startupMapGroup = Take(resolved, "StartupMapGroup"),
         .fiDeviceMountGlobal = Take(resolved, "rage::fiDevice::MountGlobal"),
         .manifestChunk = Take(resolved, "ManifestChunk"),
         .loadPackfileManifest = Take(resolved, "LoadPackfileManifest"),

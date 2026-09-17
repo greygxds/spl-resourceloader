@@ -8,7 +8,7 @@ namespace
 {
 /// THE signature table. No pattern string exists anywhere else in the codebase, so checking
 /// a new game build means reading this one array.
-constexpr std::array<SignatureSpec, 56> kSignatures = {{
+constexpr std::array<SignatureSpec, 57> kSignatures = {{
     // The LEA at match+8 loads the manager object itself, not a pointer to it, so the
     // rip-relative target is the instance.
     {.name = "strStreamingInfoManager::sm_instance",
@@ -174,6 +174,14 @@ constexpr std::array<SignatureSpec, 56> kSignatures = {{
      .required = false,
      .maxBuild = 2188,
      .source = "FiveM gta-streaming-five/src/LoadStreamingFile.cpp:3738"},
+    // "jnz; mov edx, GROUP_MAP_SP" where the game enables its map layer at startup. The offset
+    // lands on the imm32 that streaming.mp_maps rewrites. Once patched the pattern no longer
+    // matches, so it is resolved before any patch goes in.
+    {.name = "StartupMapGroup",
+     .pattern = "75 0D BA E2 99 8F 57",
+     .offset = 3,
+     .required = false,
+     .source = "FiveM gta-streaming-five/src/EnableMPMapData.cpp:30"},
 
     // Diagnostics: the console's map report lists interior proxies.
     {.name = "CInteriorProxy::sm_pPool",

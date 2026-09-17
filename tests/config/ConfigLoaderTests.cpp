@@ -19,6 +19,7 @@ using spl::config::LoaderConfig;
 using spl::config::LogLevel;
 using spl::config::MapReloadStrategy;
 using spl::config::SafeMode;
+using spl::config::StreamingSettings;
 
 namespace
 {
@@ -158,6 +159,27 @@ TEST_CASE("ConfigLoader: auto_request_ytyp is read and defaults to off", "[confi
     const ConfigLoadResult result = ConfigLoader::Parse("[streaming]\nauto_request_ytyp = true\n");
     REQUIRE(result.diagnostics.IsEmpty());
     REQUIRE(result.config.streaming.autoRequestYtyp);
+}
+
+TEST_CASE("ConfigLoader: mp_maps defaults to on and deferred to the MP map prefixes", "[config]")
+{
+    const StreamingSettings defaults = ConfigLoader::Parse("").config.streaming;
+    REQUIRE(defaults.mpMaps);
+    REQUIRE(defaults.deferred ==
+            std::vector<std::string>{"hei_*", "apa_*", "lr_*", "vw_*", "bkr_*"});
+
+    const ConfigLoadResult result =
+        ConfigLoader::Parse("[streaming]\nmp_maps = false\ndeferred = [\"xm_*\"]\n");
+    REQUIRE(result.diagnostics.IsEmpty());
+    REQUIRE_FALSE(result.config.streaming.mpMaps);
+    REQUIRE(result.config.streaming.deferred == std::vector<std::string>{"xm_*"});
+}
+
+TEST_CASE("ConfigLoader: an empty deferred list turns the wait off", "[config]")
+{
+    const ConfigLoadResult result = ConfigLoader::Parse("[streaming]\ndeferred = []\n");
+    REQUIRE(result.diagnostics.IsEmpty());
+    REQUIRE(result.config.streaming.deferred.empty());
 }
 
 TEST_CASE("ConfigLoader: the removed dev table is reported as unknown", "[config]")

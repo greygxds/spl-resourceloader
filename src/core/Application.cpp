@@ -34,6 +34,7 @@
 #include "rage/RageBridge.h"
 #include "rage/RageStreamingBackend.h"
 #include "rage/SafeCall.h"
+#include "rage/types/MapStoreTypes.h"
 #include "resource/ResourceManager.h"
 #include "streaming/StreamingManager.h"
 #include "streaming/StreamingPlan.h"
@@ -163,6 +164,11 @@ bool Application::Initialize()
         if (!m_startedEarly)
         {
             WarnAboutMemoryBudgets();
+            if (m_config.streaming.mpMaps)
+            {
+                SPL_LOG_WARNING(Core, "streaming.mp_maps needs loader.early_init = true; story "
+                                      "mode keeps its own map layer");
+            }
         }
         ConnectToGame(false);
     }
@@ -281,6 +287,8 @@ EarlyStart Application::TryStartEarly()
                         resolved.GetMessage());
         return EarlyStart::Declined;
     }
+    // Before the init hook goes in: from then on the game may reach its map setup at any time.
+    EnableMultiplayerMaps();
     rage::InitHookCallbacks callbacks{
         .onInitialMount = [this] { OnGameMounted(); },
         .onPhaseStart = [this](rage::InitPhase phase) { OnInitPhaseStart(phase); },
@@ -446,6 +454,25 @@ rage::LevelMetas Application::CollectLevelMetas() const
         add(resource, manifest->afterLevelMetas, metas.after);
     }
     return metas;
+}
+
+void Application::EnableMultiplayerMaps()
+{
+    if (!m_config.streaming.mpMaps)
+    {
+        return;
+    }
+    if (Result<void> patched = m_bridge.Init().InstallMultiplayerMapsPatch(m_bridge.GetAddresses());
+        !patched)
+    {
+        SPL_LOG_WARNING(Core,
+                        "streaming.mp_maps was not applied, so story mode keeps its own map "
+                        "layer: {}",
+                        patched.GetMessage());
+        return;
+    }
+    m_bridge.MapStore().SetMapGroup(rage::ContentGroupLayout::kMultiplayerMapGroup);
+    SPL_LOG_INFO(Core, "Starting with GTA Online's map layer (streaming.mp_maps)");
 }
 
 void Application::ExtendMemoryBudgets()
@@ -676,6 +703,7 @@ void Application::ConnectToGame(bool insideGameStartup)
         options.maxManifestsPerTick = std::numeric_limits<std::size_t>::max();
         options.tickBudgetMicros = std::numeric_limits<int64_t>::max();
     }
+    options.waitForGameSlot = m_config.streaming.deferred;
     options.onBusyChanged = [this](bool busy)
     {
         if (busy)
@@ -786,6 +814,7 @@ void Application::Tick()
         if (++m_ticksSinceReassert >= kReassertIntervalTicks)
         {
             m_ticksSinceReassert = 0;
+            m_streaming.RegisterWaitingAssets(); // a script may have enabled GROUP_MAP since
             m_streaming.ReassertRegistrations();
         }
     }
