@@ -84,6 +84,11 @@ public:
         return outcome;
     }
 
+    bool HasGameSlot(const PlannedAsset& asset) override
+    {
+        return gameAssets.contains(asset.fileName);
+    }
+
     Result<void> InstallMapTypesPatches() override
     {
         events.push_back("patches");
@@ -1029,4 +1034,120 @@ TEST_CASE(
     REQUIRE(stack != nullptr);
     CHECK(stack->gameHandle == kGameHandle);
     CHECK_FALSE(manager.GetRegistry().Find("skin.ytd")->overridesGameAsset);
+}
+
+namespace
+{
+StreamingManager::Options WaitingForMpLayer()
+{
+    return StreamingManager::Options{.waitForGameSlot = {"hei_*", "apa_*"}};
+}
+} // namespace
+
+TEST_CASE("StreamingManager: an MP-layer map without a game slot waits, and takes the slot over "
+          "once the game registers it",
+          "[streaming]")
+{
+    Fixture fixture;
+    const std::array names = {std::string_view{"hei_bh1_rd_strm_5.ymap"},
+                              std::string_view{"hi@hei_bh1_05_0.ybn"},
+                              std::string_view{"bh1_05_0.ybn"}};
+    fixture.Build(names);
+
+    FakeStreamingBackend backend;
+    backend.gameAssets.insert("bh1_05_0.ybn");
+    StreamingManager manager;
+    manager.Start(fixture.plan, backend, fixture.tree.Path(), WaitingForMpLayer());
+    CHECK(manager.RegisterWaitingAssets() == 0); // not done yet: nothing is checked
+    RunToCompletion(manager);
+
+    REQUIRE(manager.GetStage() == StreamingStage::Done);
+    CHECK(backend.registered == std::vector<std::string>{"bh1_05_0.ybn"});
+    CHECK(manager.GetTotals().waiting == 2);
+    CHECK(manager.RegisterWaitingAssets() == 0); // the MP layer is still off
+
+    // A script enables GROUP_MAP: the game registers its copies.
+    backend.gameAssets.insert("hei_bh1_rd_strm_5.ymap");
+    backend.gameAssets.insert("hi@hei_bh1_05_0.ybn");
+    CHECK(manager.RegisterWaitingAssets() == 2);
+    CHECK(manager.RegisterWaitingAssets() == 0);
+
+    CHECK(manager.GetTotals().waiting == 0);
+    CHECK(manager.GetTotals().registered == 3);
+    const RegisteredAsset* const map = manager.GetRegistry().Find("hei_bh1_rd_strm_5.ymap");
+    REQUIRE(map != nullptr);
+    CHECK(map->overridesGameAsset);
+    CHECK(manager.GetRegistry().Find("hi@hei_bh1_05_0.ybn")->overridesGameAsset);
+}
+
+TEST_CASE("StreamingManager: an MP-layer map whose game slot already exists registers at once",
+          "[streaming]")
+{
+    Fixture fixture;
+    const std::array names = {std::string_view{"apa_ch2_06_strm_3.ymap"}};
+    fixture.Build(names);
+
+    FakeStreamingBackend backend;
+    backend.gameAssets.insert("apa_ch2_06_strm_3.ymap"); // streaming.mp_maps, for one
+    StreamingManager manager;
+    manager.Start(fixture.plan, backend, fixture.tree.Path(), WaitingForMpLayer());
+    RunToCompletion(manager);
+
+    CHECK(backend.registered == std::vector<std::string>{"apa_ch2_06_strm_3.ymap"});
+    CHECK(manager.GetTotals().waiting == 0);
+    CHECK(manager.GetRegistry().Find("apa_ch2_06_strm_3.ymap")->overridesGameAsset);
+}
+
+TEST_CASE("StreamingManager: only maps and collisions wait for a game slot", "[streaming]")
+{
+    Fixture fixture;
+    const std::array names = {std::string_view{"hei_prop_custom.ytd"},
+                              std::string_view{"hei_props.ytyp"}};
+    fixture.Build(names);
+
+    FakeStreamingBackend backend;
+    StreamingManager manager;
+    manager.Start(fixture.plan, backend, fixture.tree.Path(), WaitingForMpLayer());
+    RunToCompletion(manager);
+
+    CHECK(backend.registered.size() == 2);
+    CHECK(manager.GetTotals().waiting == 0);
+}
+
+TEST_CASE("StreamingManager: nothing waits without patterns", "[streaming]")
+{
+    Fixture fixture;
+    const std::array names = {std::string_view{"hei_bh1_rd_strm_5.ymap"}};
+    fixture.Build(names);
+
+    FakeStreamingBackend backend;
+    StreamingManager manager;
+    manager.Start(fixture.plan, backend, fixture.tree.Path());
+    RunToCompletion(manager);
+
+    CHECK(backend.registered == std::vector<std::string>{"hei_bh1_rd_strm_5.ymap"});
+    CHECK(manager.GetTotals().waiting == 0);
+}
+
+TEST_CASE("StreamingManager: a waiting map that fails once its slot exists is not retried",
+          "[streaming]")
+{
+    Fixture fixture;
+    const std::array names = {std::string_view{"hei_bh1_rd_strm_5.ymap"}};
+    fixture.Build(names);
+
+    FakeStreamingBackend backend;
+    StreamingManager manager;
+    manager.Start(fixture.plan, backend, fixture.tree.Path(), WaitingForMpLayer());
+    RunToCompletion(manager);
+
+    backend.gameAssets.insert("hei_bh1_rd_strm_5.ymap");
+    backend.fail.insert("hei_bh1_rd_strm_5.ymap");
+    CHECK(manager.RegisterWaitingAssets() == 0);
+    CHECK(manager.RegisterWaitingAssets() == 0);
+
+    CHECK(backend.registered.size() == 1);
+    CHECK(manager.GetTotals().failed == 1);
+    CHECK(manager.GetTotals().waiting == 0);
+    CHECK(manager.GetRegistry().Size() == 0);
 }

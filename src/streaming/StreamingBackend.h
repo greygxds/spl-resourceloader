@@ -96,6 +96,10 @@ public:
     /// Makes one asset known to the game. Never throws and never reports absence as failure.
     [[nodiscard]] virtual RegistrationOutcome RegisterAsset(const PlannedAsset& asset) = 0;
 
+    /// True when the game has registered an archive file under the asset's name, so the asset
+    /// would replace it. A slot holding a loose file, ours or anyone's, does not count.
+    [[nodiscard]] virtual bool HasGameSlot(const PlannedAsset& asset) = 0;
+
     /// Applies the game patches raw .ytyp and .ymap files need. Called once, before the late
     /// registrations, and only when the plan has such files.
     [[nodiscard]] virtual Result<void> InstallMapTypesPatches() = 0;

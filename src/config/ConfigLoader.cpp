@@ -526,6 +526,8 @@ ConfigLoadResult ConfigLoader::Parse(std::string_view tomlText)
         reader.Read("allow_overrides", config.streaming.allowOverrides);
         reader.ReadDuplicatePolicy("duplicate_policy", config.streaming.duplicatePolicy);
         reader.Read("auto_request_ytyp", config.streaming.autoRequestYtyp);
+        reader.Read("mp_maps", config.streaming.mpMaps);
+        reader.ReadNameList("deferred", config.streaming.deferred);
         reader.ReportUnknownKeys();
     }
     {

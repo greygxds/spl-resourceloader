@@ -147,6 +147,10 @@ private:
     /// One warning per resource whose level metas cannot load this session.
     void WarnAboutLevelMetas() const;
 
+    /// Applies streaming.mp_maps. Only before the game sets up its map layer; a failure keeps
+    /// story mode's maps and starting early goes ahead.
+    void EnableMultiplayerMaps();
+
     /// Applies the [memory] extensions the config asks for. Only while the game starts.
     void ExtendMemoryBudgets();
 

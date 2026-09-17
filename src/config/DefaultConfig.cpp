@@ -49,6 +49,8 @@ load_animations = true          # .ycd
 allow_overrides = true          # let resources replace original game assets
 duplicate_policy = "first"      # same file in two resources: "first" or "last" by load order wins
 auto_request_ytyp = false       # load every streamed .ytyp even without DLC_ITYP_REQUEST
+mp_maps = true                  # start with GTA Online's map layer, as FiveM does; needs early_init
+deferred = ["hei_*", "apa_*", "lr_*", "vw_*", "bkr_*"] # MP-layer maps wait for the game's slot
 
 [data_files]                    # manifest data_file entries, as FiveM loads them
 enabled = true

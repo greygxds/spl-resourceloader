@@ -32,6 +32,7 @@ public:
     [[nodiscard]] Result<void> PrepareResourceRoot(const std::filesystem::path& root) override;
     [[nodiscard]] streaming::RegistrationOutcome
     RegisterAsset(const streaming::PlannedAsset& asset) override;
+    [[nodiscard]] bool HasGameSlot(const streaming::PlannedAsset& asset) override;
 
     [[nodiscard]] Result<void> InstallMapTypesPatches() override;
     [[nodiscard]] Result<void> InstallMapDataPatches() override;

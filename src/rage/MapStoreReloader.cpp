@@ -306,18 +306,16 @@ Result<void> MapStoreReloader::ToggleContentGroup() const
         return MakeError(ErrorCode::Unavailable, "the extra content manager does not exist yet");
     }
 
-    const uint32_t group = util::JoaatLower(ContentGroupLayout::kStoryMapGroup);
+    const uint32_t group = util::JoaatLower(m_mapGroup);
     const auto disable = reinterpret_cast<ContentGroupFn>(m_disableContentGroup);
     const auto enable = reinterpret_cast<ContentGroupFn>(m_enableContentGroup);
     if (!SafeCall("CExtraContentManager::DisableContentGroup", [&] { disable(*manager, group); }))
     {
-        return MakeError(ErrorCode::Unavailable, "disabling {} faulted",
-                         ContentGroupLayout::kStoryMapGroup);
+        return MakeError(ErrorCode::Unavailable, "disabling {} faulted", m_mapGroup);
     }
     if (!SafeCall("CExtraContentManager::EnableContentGroup", [&] { enable(*manager, group); }))
     {
-        return MakeError(ErrorCode::Unavailable, "enabling {} faulted",
-                         ContentGroupLayout::kStoryMapGroup);
+        return MakeError(ErrorCode::Unavailable, "enabling {} faulted", m_mapGroup);
     }
     return {};
 }

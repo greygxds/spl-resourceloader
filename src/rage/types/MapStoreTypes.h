@@ -88,6 +88,10 @@ namespace ContentGroupLayout
 /// (gta-streaming-five/src/EnableMPMapData.cpp:13).
 constexpr std::string_view kStoryMapGroup = "GROUP_MAP_SP";
 
+/// GTA Online's map group: the MP map layers (hei_, apa_, ...) of every multiplayer DLC pack,
+/// which FiveM enables at startup instead (gta-streaming-five/src/EnableMPMapData.cpp:16).
+constexpr std::string_view kMultiplayerMapGroup = "GROUP_MAP";
+
 /// ClearContentCache(0): the only argument FiveM ever passes.
 constexpr int kClearCacheArgument = 0;
 } // namespace ContentGroupLayout

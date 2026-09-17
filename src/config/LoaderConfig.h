@@ -100,6 +100,15 @@ struct StreamingSettings
     /// behaviour, which is why it is off.
     bool autoRequestYtyp = false;
 
+    /// Start the game with GTA Online's map layer (GROUP_MAP) instead of story mode's, as FiveM
+    /// does, so MP-layer map files find their game slot. Needs loader.early_init.
+    bool mpMaps = true;
+
+    /// .ymap and .ybn file names, as globs, that are held back until the game has a slot of
+    /// that name: Rockstar's MP map layers only get theirs once GROUP_MAP is enabled. A "hi@" or
+    /// "ma@" collision prefix is ignored when matching.
+    std::vector<std::string> deferred = {"hei_*", "apa_*", "lr_*", "vw_*", "bkr_*"};
+
     bool operator==(const StreamingSettings&) const = default;
 };
 

@@ -98,6 +98,9 @@ struct GameAddresses
     /// ClearContentCache(int).
     uintptr_t extraContentManagerClearContentCache = 0;
 
+    /// The GROUP_MAP_SP imm32 the game enables its map layer with at startup. streaming.mp_maps.
+    uintptr_t startupMapGroup = 0;
+
     /// rage::fiDevice::MountGlobal(const char* mountPoint, fiDevice* device, bool allowRoot).
     uintptr_t fiDeviceMountGlobal = 0;
 

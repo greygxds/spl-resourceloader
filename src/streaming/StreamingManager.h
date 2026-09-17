@@ -43,6 +43,9 @@ struct RegistrationTotals
     /// Planned, but of a type whose registration is not written yet. The plan still lists
     /// them, because what the loader intends to do does not change with the version.
     std::size_t deferred = 0;
+
+    /// MP-layer map files still waiting for the game to register its own copy.
+    std::size_t waiting = 0;
 };
 
 struct DataFileTotals
@@ -113,6 +116,9 @@ public:
         std::size_t maxManifestsPerTick = kMaxManifestsPerTick;
         int64_t tickBudgetMicros = kTickBudgetMicros;
 
+        /// streaming.deferred: .ymap and .ybn name globs that wait for the game's own slot.
+        std::vector<std::string> waitForGameSlot;
+
         /// Microseconds from any fixed point. Empty uses the steady clock; tests pass their own.
         std::function<int64_t()> clockMicros;
 
@@ -132,6 +138,11 @@ public:
     /// Once registration is done: puts back every registration the game has replaced with its
     /// own file since, and returns how many. Cheap enough to call every few ticks.
     std::size_t ReassertRegistrations();
+
+    /// Once registration is done: registers every waiting MP-layer map file whose game slot
+    /// now exists, which makes it an override, and returns how many. Cheap enough to call every
+    /// few ticks.
+    std::size_t RegisterWaitingAssets();
 
     [[nodiscard]] StreamingStage GetStage() const
     {
@@ -209,6 +220,13 @@ private:
 
     void Finish();
 
+    /// True for a .ymap or .ybn matching streaming.deferred whose game slot does not exist yet.
+    [[nodiscard]] bool MustWaitForGameSlot(const PlannedAsset& asset) const;
+
+    /// Counts, records and logs what RegisterAsset returned.
+    void RecordOutcome(const PlannedAsset& asset, const RegistrationOutcome& outcome,
+                       RegistrationTotals& totals);
+
     /// The debug line for one registration, with the game's copy it replaced if any.
     void LogRegistration(const PlannedAsset& asset, const RegistrationOutcome& outcome) const;
 
@@ -242,6 +260,7 @@ private:
     int64_t m_tickStartMicros = 0;
     StreamingWork m_work;
     std::vector<StageTiming> m_timings;
+    std::vector<const PlannedAsset*> m_waitingAssets; ///< into the plan; see RegisterWaitingAssets
     AssetRegistry m_registry;
 };
 } // namespace spl::streaming
