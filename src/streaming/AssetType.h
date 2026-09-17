@@ -72,7 +72,7 @@ struct AssetTypeInfo
     std::string_view
         moduleExtension; ///< RAGE streaming module to look up; empty for ymf and OtherModule
     bool expectsRscHeader = false;   ///< every type except gfx
-    bool acceptsPsoMetadata = false; ///< a "PSIN" file passes the header check too (ymf)
+    bool acceptsPsoMetadata = false; ///< a "PSIN" file passes the header check too (ymf, ymt)
     SupportTier tier = SupportTier::Unsupported;
     RegistrationStage stage = RegistrationStage::Early;
     ConfigGate gate = ConfigGate::Always;

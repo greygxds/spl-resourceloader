@@ -108,10 +108,12 @@ constexpr std::array<AssetTypeInfo, kAssetTypeCount> kAssetTypes{{
     // Ped metadata, above all a clothing pack's drawable collection
     // (mp_f_freemode_01_<collection>.ymt), which the SHOP_PED_APPAREL_META_FILE names. It has
     // to be registered before that data file is mounted, which the early stage guarantees.
+    // Those are compiled; scenario regions are PSO files ("PSIN"), as CodeWalker saves them.
     {.type = AssetType::Metadata,
      .extension = "ymt",
      .moduleExtension = "ymt",
      .expectsRscHeader = true,
+     .acceptsPsoMetadata = true,
      .tier = SupportTier::Supported,
      .stage = RegistrationStage::Early,
      .gate = ConfigGate::LoadModels,
