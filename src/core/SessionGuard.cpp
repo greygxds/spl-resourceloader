@@ -17,6 +17,7 @@
 
 #include "config/LoaderConfig.h"
 #include "core/Result.h"
+#include "util/Files.h"
 #include "util/Strings.h"
 
 namespace spl
@@ -58,29 +59,12 @@ std::optional<std::string> ReadWholeFile(const std::filesystem::path& file)
     return std::string{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
 }
 
-/// Written next to the file and renamed over it, so a crash mid-write leaves the old contents
-/// rather than a truncated file that would forget every quarantined resource.
+/// Atomic, so a crash mid-write leaves the old contents rather than a truncated file that would
+/// forget every quarantined resource. A failed write keeps the old file, which is all there is to
+/// do.
 void WriteWholeFile(const std::filesystem::path& file, std::string_view contents)
 {
-    std::filesystem::path temporary = file;
-    temporary += ".tmp";
-    {
-        std::ofstream stream{temporary, std::ios::binary | std::ios::trunc};
-        stream << contents;
-        stream.flush();
-        if (!stream)
-        {
-            std::error_code error;
-            std::filesystem::remove(temporary, error);
-            return;
-        }
-    }
-    std::error_code error;
-    std::filesystem::rename(temporary, file, error);
-    if (error)
-    {
-        std::filesystem::remove(temporary, error);
-    }
+    static_cast<void>(util::WriteFileAtomically(file, contents));
 }
 } // namespace
 
@@ -241,7 +225,7 @@ std::string SessionGuard::FormatState(const std::vector<std::string>& quarantine
     root.insert("resources", std::move(resources));
 
     std::ostringstream text;
-    text << "# Written by the loader; config.toml is never changed for you.\n"
+    text << "# Written by the loader; config.toml only ever gains new options, never your values.\n"
             "# A quarantined resource crashed the game while it was being registered and is\n"
             "# skipped. Remove its name to try it again.\n\n"
          << root << '\n';

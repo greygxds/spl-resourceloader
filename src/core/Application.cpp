@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include "config/ConfigLoader.h"
@@ -210,6 +211,14 @@ bool Application::Bootstrap()
     {
         SPL_LOG_INFO(Config, "Wrote default configuration to '{}'",
                      util::ToUtf8(m_paths->configFile));
+    }
+    if (!loaded.addedOptions.empty())
+    {
+        SPL_LOG_INFO(Config,
+                     "Added {} new option(s) to '{}' with their defaults: {} (the old file "
+                     "is kept as config.toml.bak)",
+                     loaded.addedOptions.size(), util::ToUtf8(m_paths->configFile),
+                     fmt::join(loaded.addedOptions, ", "));
     }
     ReplayDiagnostics(loaded.diagnostics);
 

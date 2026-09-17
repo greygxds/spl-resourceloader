@@ -115,6 +115,7 @@
     <ClCompile Include="$(SplRoot)src\util\Glob.cpp" />
     <ClCompile Include="$(SplRoot)src\util\Strings.cpp" />
     <ClCompile Include="$(SplRoot)src\util\FileTree.cpp" />
+    <ClCompile Include="$(SplRoot)src\util\Files.cpp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -163,6 +164,7 @@
     <ClInclude Include="$(SplRoot)src\util\Hash.h" />
     <ClInclude Include="$(SplRoot)src\util\Strings.h" />
     <ClInclude Include="$(SplRoot)src\util\FileTree.h" />
+    <ClInclude Include="$(SplRoot)src\util\Files.h" />
   </ItemGroup>
 
   <ItemGroup>

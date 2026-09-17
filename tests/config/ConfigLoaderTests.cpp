@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -12,8 +13,10 @@
 #include "config/DefaultConfig.h"
 #include "config/LoaderConfig.h"
 
+using spl::config::AddMissingOptions;
 using spl::config::ConfigLoader;
 using spl::config::ConfigLoadResult;
+using spl::config::ConfigUpgrade;
 using spl::config::DuplicatePolicy;
 using spl::config::LoaderConfig;
 using spl::config::LogLevel;
@@ -354,4 +357,159 @@ TEST_CASE("ConfigLoader: early_init is read and on by default", "[config]")
     REQUIRE(result.diagnostics.IsEmpty());
     CHECK_FALSE(result.config.loader.earlyInit);
     CHECK(LoaderConfig{}.loader.earlyInit);
+}
+
+namespace
+{
+constexpr std::string_view kSmallDefaults = "# header comment\n"
+                                            "\n"
+                                            "[loader]\n"
+                                            "enabled = true\n"
+                                            "early_init = true   # start with the game\n"
+                                            "\n"
+                                            "[streaming]\n"
+                                            "mp_maps = true      # GTA Online's map layer\n"
+                                            "\n"
+                                            "[memory]            # memory extensions\n"
+                                            "texture_budget_scale = 0\n";
+} // namespace
+
+TEST_CASE("AddMissingOptions: a missing key goes after its table's last value, with its comment",
+          "[config]")
+{
+    constexpr std::string_view user = "# mine\n"
+                                      "[loader]\n"
+                                      "enabled = false # I turned it off\n"
+                                      "custom = 1\n"
+                                      "# trailing note\n"
+                                      "\n"
+                                      "[streaming]\n"
+                                      "mp_maps = false\n"
+                                      "\n"
+                                      "[memory]\n"
+                                      "texture_budget_scale = 6\n";
+
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(user, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->addedOptions == std::vector<std::string>{"loader.early_init"});
+    CHECK(upgrade->text == "# mine\n"
+                           "[loader]\n"
+                           "enabled = false # I turned it off\n"
+                           "custom = 1\n"
+                           "early_init = true   # start with the game\n"
+                           "# trailing note\n"
+                           "\n"
+                           "[streaming]\n"
+                           "mp_maps = false\n"
+                           "\n"
+                           "[memory]\n"
+                           "texture_budget_scale = 6\n");
+}
+
+TEST_CASE("AddMissingOptions: a key goes after a multi-line value, not inside it", "[config]")
+{
+    constexpr std::string_view user = "[loader]\n"
+                                      "enabled = [\n"
+                                      "  1,\n"
+                                      "]\n"
+                                      "[streaming]\n"
+                                      "mp_maps = true\n"
+                                      "[memory]\n"
+                                      "texture_budget_scale = 0\n";
+
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(user, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->text == "[loader]\n"
+                           "enabled = [\n"
+                           "  1,\n"
+                           "]\n"
+                           "early_init = true   # start with the game\n"
+                           "[streaming]\n"
+                           "mp_maps = true\n"
+                           "[memory]\n"
+                           "texture_budget_scale = 0\n");
+}
+
+TEST_CASE("AddMissingOptions: a missing table is appended whole, after a blank line", "[config]")
+{
+    constexpr std::string_view user = "[loader]\nenabled = true\nearly_init = false\n"
+                                      "[memory]\ntexture_budget_scale = 2"; // no final newline
+
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(user, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->addedOptions == std::vector<std::string>{"streaming.mp_maps"});
+    CHECK(upgrade->text == "[loader]\nenabled = true\nearly_init = false\n"
+                           "[memory]\ntexture_budget_scale = 2\n"
+                           "\n"
+                           "[streaming]\n"
+                           "mp_maps = true      # GTA Online's map layer\n");
+}
+
+TEST_CASE("AddMissingOptions: a table with only its header gets the key under the header",
+          "[config]")
+{
+    constexpr std::string_view user = "[loader]\nenabled = true\nearly_init = "
+                                      "true\n[streaming]\n[memory]\ntexture_budget_scale = 0\n";
+
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(user, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->text == "[loader]\nenabled = true\nearly_init = true\n[streaming]\n"
+                           "mp_maps = true      # GTA Online's map layer\n"
+                           "[memory]\ntexture_budget_scale = 0\n");
+}
+
+TEST_CASE("AddMissingOptions: CRLF files stay CRLF", "[config]")
+{
+    constexpr std::string_view user =
+        "[loader]\r\nenabled = true\r\n[streaming]\r\nmp_maps = true\r\n[memory]\r\n"
+        "texture_budget_scale = 0\r\n";
+
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(user, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->text ==
+          "[loader]\r\nenabled = true\r\n"
+          "early_init = true   # start with the game\r\n"
+          "[streaming]\r\nmp_maps = true\r\n[memory]\r\ntexture_budget_scale = 0\r\n");
+}
+
+TEST_CASE("AddMissingOptions: a complete file comes back unchanged", "[config]")
+{
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(kSmallDefaults, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->addedOptions.empty());
+    CHECK(upgrade->text == kSmallDefaults);
+}
+
+TEST_CASE("AddMissingOptions: inline tables and non-tables are left alone", "[config]")
+{
+    constexpr std::string_view user =
+        "loader = { enabled = true }\nstreaming = 5\n[memory]\ntexture_budget_scale = 0\n";
+
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(user, kSmallDefaults);
+
+    REQUIRE(upgrade.has_value());
+    CHECK(upgrade->addedOptions.empty());
+    CHECK(upgrade->text == user);
+}
+
+TEST_CASE("AddMissingOptions: a file that does not parse is not touched", "[config]")
+{
+    CHECK_FALSE(AddMissingOptions("[loader\nenabled = true\n", kSmallDefaults).has_value());
+}
+
+TEST_CASE("AddMissingOptions: an empty file becomes the full default config", "[config]")
+{
+    const std::optional<ConfigUpgrade> upgrade =
+        AddMissingOptions("", spl::config::DefaultConfigText());
+
+    REQUIRE(upgrade.has_value());
+    const ConfigLoadResult result = ConfigLoader::Parse(upgrade->text);
+    REQUIRE(result.diagnostics.IsEmpty());
+    REQUIRE(result.config == LoaderConfig{});
 }

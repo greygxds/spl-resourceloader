@@ -24,7 +24,7 @@ Mods are the `.rpf` archives stored inside your `FiveM\FiveM.app\mods` - things 
 If you have installed the mod and it doesn't work check the log in `resourceLoader\resourceLoader.log`. If the log states that the mod never initialized, **read this section again** because you obviously didn't install it properly.
 
 ## Configuration
-You can configure this tool by modifying `resourceLoader/config.toml`.
+You can configure this tool by modifying `resourceLoader/config.toml`. The loader creates it on the first launch. When an update adds options, they're added to your existing file with their defaults, your own values stay as they are, and the previous file is kept as `config.toml.bak`.
 
 
 ## FAQ

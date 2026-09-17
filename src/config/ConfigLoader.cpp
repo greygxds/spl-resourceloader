@@ -10,12 +10,14 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 #include <toml++/toml.hpp>
 
 #include "config/DefaultConfig.h"
 #include "config/LoaderConfig.h"
+#include "util/Files.h"
 #include "util/Strings.h"
 
 namespace spl::config
@@ -565,6 +567,37 @@ ConfigLoadResult ConfigLoader::Parse(std::string_view tomlText)
     return result;
 }
 
+namespace
+{
+/// Writes the options a newer default added into the user's file, keeping the old file as
+/// config.toml.bak. The values parsed are already these defaults, so the result only gains the
+/// list of what was added. Any failure leaves the file as it was.
+void AddMissingOptionsToFile(const std::filesystem::path& file, std::string_view contents,
+                             ConfigLoadResult& result)
+{
+    const std::optional<ConfigUpgrade> upgrade = AddMissingOptions(contents, DefaultConfigText());
+    if (!upgrade || upgrade->addedOptions.empty())
+    {
+        return;
+    }
+
+    std::filesystem::path backup = file;
+    backup += ".bak";
+    std::error_code error;
+    std::filesystem::copy_file(file, backup, std::filesystem::copy_options::overwrite_existing,
+                               error);
+    if (error || !util::WriteFileAtomically(file, upgrade->text))
+    {
+        result.diagnostics.warnings.push_back(
+            fmt::format("config.toml lacks {} new option(s) and could not be updated; they keep "
+                        "their defaults",
+                        upgrade->addedOptions.size()));
+        return;
+    }
+    result.addedOptions = upgrade->addedOptions;
+}
+} // namespace
+
 ConfigLoadResult ConfigLoader::LoadOrCreate(const std::filesystem::path& file)
 {
     ConfigLoadResult result;
@@ -592,10 +625,15 @@ ConfigLoadResult ConfigLoader::LoadOrCreate(const std::filesystem::path& file)
 
     std::ostringstream contents;
     contents << stream.rdbuf();
+    stream.close(); // Windows refuses to replace a file that is still open
 
     const bool wroteDefault = result.wroteDefault;
     result = Parse(contents.str());
     result.wroteDefault = wroteDefault;
+    if (!wroteDefault && result.diagnostics.errors.empty())
+    {
+        AddMissingOptionsToFile(file, contents.str(), result);
+    }
     return result;
 }
 } // namespace spl::config
