@@ -269,21 +269,37 @@ TEST_CASE("AssetScanner: a PSO packfile manifest is planned", "[streaming]")
     REQUIRE(result.warnings.empty());
 }
 
-TEST_CASE("AssetScanner: only a ymf may be a PSO file", "[streaming]")
+TEST_CASE("AssetScanner: a PSO scenario ymt is planned", "[streaming]")
+{
+    StreamTree tree;
+    const Resource resource = tree.AddStreamResource("map_one");
+    tree.AddPsoFile("map_one", "ymt/1635093454.ymt"); // a scenario region, as CodeWalker saves it
+
+    const AssetScanner::Result result = ScanOf(resource);
+
+    REQUIRE(result.assets.size() == 1);
+    REQUIRE(result.assets.front().type == AssetType::Metadata);
+    REQUIRE(result.assets.front().disposition == AssetDisposition::Planned);
+    REQUIRE(result.assets.front().rsc->IsPsoMetadata());
+    REQUIRE(result.warnings.empty());
+}
+
+TEST_CASE("AssetScanner: only a ymf or ymt may be a PSO file", "[streaming]")
 {
     StreamTree tree;
     const Resource resource = tree.AddStreamResource("map_one");
     tree.AddPsoFile("map_one", "props.ydr");
     tree.AddFile("map_one", "broken.ymf", "<CPackFileMetaData />");
+    tree.AddFile("map_one", "broken.ymt", "<CScenarioPointRegion />");
 
     const AssetScanner::Result result = ScanOf(resource);
 
-    REQUIRE(result.assets.size() == 2);
+    REQUIRE(result.assets.size() == 3);
     for (const StreamAsset& asset : result.assets)
     {
         REQUIRE(asset.disposition == AssetDisposition::SkippedInvalid);
     }
-    REQUIRE(result.warnings.size() == 2);
+    REQUIRE(result.warnings.size() == 3);
 }
 
 TEST_CASE("AssetScanner: a file without an RSC header is skipped as invalid", "[streaming]")
