@@ -317,8 +317,11 @@ void StreamingManager::RunDataFiles(std::span<const PlannedDataFile> dataFiles, 
         if (!loaded)
         {
             ++m_dataFileTotals.failed;
-            SPL_LOG_ERROR(Streaming, "{} '{}' from '{}' failed to load: {}", dataFile.type,
-                          dataFile.relativePath, dataFile.resourceName, loaded.GetMessage());
+            SPL_LOG_ERROR(Streaming, "{} '{}' from '{}' failed to load: {}{}", dataFile.type,
+                          dataFile.relativePath, dataFile.resourceName, loaded.GetMessage(),
+                          dataFile.contentNote.empty()
+                              ? std::string{}
+                              : fmt::format(" ({})", dataFile.contentNote));
             continue;
         }
         ++m_dataFileTotals.loaded;

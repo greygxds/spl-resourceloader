@@ -91,8 +91,9 @@ constexpr std::string_view kItypRequestType = "DLC_ITYP_REQUEST";
 constexpr std::string_view kObsoleteAssaultVehiclesFile = "data/ai/vehicleweapons_caracara.meta";
 
 /// Audio data files are named without the suffix the audio engine adds: 'audio/x_game.dat'
-/// is x_game.dat151.rel on disk.
+/// is x_game.dat151.rel on disk, opened together with the x_game.dat151.nametable beside it.
 constexpr std::string_view kAudioDataSuffix = ".rel";
+constexpr std::string_view kAudioNameTableSuffix = ".nametable";
 
 /// pgRawStreamer holds 65 535 entries at most, and it is shared with the game's own files.
 /// Well before that the plan is a sign that something has gone wrong.
@@ -211,35 +212,111 @@ FindDataFileSwitch(const DataFileTypeInfo& info, const config::DataFileSettings&
     return std::nullopt;
 }
 
-/// True when a data file's path names an existing file. An audio path names its data without
-/// the engine's suffix ('x_game.dat' for x_game.dat151.rel), or a wave pack folder.
-[[nodiscard]] bool HasData(const util::IFileTree& files, const std::filesystem::path& path,
-                           DataFileCategory category)
+/// One version suffix an audio data file was found under — the '151' of x_game.dat151.rel —
+/// and which halves of the pair the resource ships under it.
+struct AudioPair
 {
-    if (files.Stat(path))
-    {
-        return true;
-    }
-    if (category != DataFileCategory::Audio)
-    {
-        return false;
-    }
+    std::string version;
+    bool hasData = false;      ///< the .rel, the metadata itself
+    bool hasNameTable = false; ///< the .nametable the engine reads the object names from
+};
 
-    const std::string prefix = util::ToLower(util::ToUtf8(path.filename()));
+/// Every version suffix 'audio/x_game.dat' was found under, in version order. The engine opens
+/// the one suffix its build uses, so files shipped under another one are never looked at.
+[[nodiscard]] std::vector<AudioPair> FindAudioPairs(const util::IFileTree& files,
+                                                    const std::filesystem::path& path)
+{
     const Result<std::vector<util::FileTreeEntry>> entries = files.List(path.parent_path());
     if (!entries)
     {
-        return false;
+        return {};
     }
+
+    const std::string prefix = util::ToLower(util::ToUtf8(path.filename()));
+    std::vector<AudioPair> pairs;
+    const auto pairFor = [&pairs](std::string_view version) -> AudioPair&
+    {
+        const auto match = std::ranges::find(pairs, version, &AudioPair::version);
+        return match != pairs.end()
+                   ? *match
+                   : pairs.emplace_back(AudioPair{.version = std::string{version}});
+    };
+
     for (const util::FileTreeEntry& entry : entries.GetValue())
     {
         const std::string name = util::ToLower(util::ToUtf8(entry.path.filename()));
-        if (name.starts_with(prefix) && name.ends_with(kAudioDataSuffix))
+        if (!name.starts_with(prefix))
         {
-            return true;
+            continue;
+        }
+        const std::string_view suffix = std::string_view{name}.substr(prefix.size());
+        if (suffix.ends_with(kAudioDataSuffix))
+        {
+            pairFor(suffix.substr(0, suffix.size() - kAudioDataSuffix.size())).hasData = true;
+        }
+        else if (suffix.ends_with(kAudioNameTableSuffix))
+        {
+            pairFor(suffix.substr(0, suffix.size() - kAudioNameTableSuffix.size())).hasNameTable =
+                true;
         }
     }
-    return false;
+    std::ranges::sort(pairs, {}, &AudioPair::version);
+    return pairs;
+}
+
+/// What a resource ships for one data file: whether the game will find what it opens, and a
+/// phrase naming what is there, for the log.
+struct DataFileContent
+{
+    bool complete = true;
+    std::string note;
+};
+
+/// The pair behind an audio data file named without its suffix. Both halves have to be there
+/// under the suffix the build uses, or the game's mounter refuses the file without saying why,
+/// so the note names every suffix found and what it holds.
+[[nodiscard]] DataFileContent CheckAudioData(const util::IFileTree& files,
+                                             const std::filesystem::path& path)
+{
+    const std::vector<AudioPair> pairs = FindAudioPairs(files, path);
+    if (pairs.empty())
+    {
+        return {.complete = false, .note = "nothing of it is on disk"};
+    }
+
+    const std::string stem = util::ToLower(util::ToUtf8(path.filename()));
+    bool complete = false;
+    std::string note = "it ships ";
+    for (const AudioPair& pair : pairs)
+    {
+        complete = complete || (pair.hasData && pair.hasNameTable);
+        if (&pair != &pairs.front())
+        {
+            note += ", ";
+        }
+        note += fmt::format("{}{} ({})", stem, pair.version,
+                            pair.hasData && pair.hasNameTable ? "with its .nametable"
+                            : pair.hasData                    ? "without its .nametable"
+                                                              : "a .nametable with no .rel");
+    }
+    return {.complete = complete, .note = note};
+}
+
+/// What is on disk for a data file, under the name the manifest gave it. An audio path names
+/// its data without the engine's suffix, or a wave pack folder.
+[[nodiscard]] DataFileContent CheckData(const util::IFileTree& files,
+                                        const std::filesystem::path& path,
+                                        DataFileCategory category)
+{
+    if (files.Stat(path))
+    {
+        return {};
+    }
+    if (category == DataFileCategory::Audio)
+    {
+        return CheckAudioData(files, path);
+    }
+    return {.complete = false, .note = "no file is at that path"};
 }
 } // namespace
 
@@ -525,14 +602,19 @@ void StreamingPlan::CollectDataFiles(std::span<const resource::Resource> resourc
                                         : fmt::format("@{}/{}", entry.otherResource, relativePath),
                     .fileName = util::ToLower(util::ToUtf8(path.filename()))};
 
-                if (info->policy != DataFilePolicy::TypeRequest &&
-                    !HasData(*paths.files, dataFile.absolutePath, info->category))
+                if (info->policy != DataFilePolicy::TypeRequest)
                 {
-                    // Still handed over, as FiveM does: the game's mounter has the last word.
-                    SPL_LOG_WARNING(Streaming,
-                                    "{}: data_file {} '{}' does not exist; the game will most "
-                                    "likely refuse it",
-                                    resourcePlan.name, type, relativePath);
+                    const DataFileContent content =
+                        CheckData(*paths.files, dataFile.absolutePath, info->category);
+                    dataFile.contentNote = content.note;
+                    if (!content.complete)
+                    {
+                        // Still handed over, as FiveM does: the game's mounter has the last word.
+                        SPL_LOG_WARNING(Streaming,
+                                        "{}: data_file {} '{}' is incomplete, so the game will "
+                                        "most likely refuse it: {}",
+                                        resourcePlan.name, type, relativePath, content.note);
+                    }
                 }
 
                 if (info->policy == DataFilePolicy::TypeRequest)
