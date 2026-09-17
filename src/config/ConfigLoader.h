@@ -27,6 +27,10 @@ struct ConfigLoadResult
     LoaderConfig config;
     ConfigDiagnostics diagnostics;
     bool wroteDefault = false; ///< the file was missing and the default was written
+
+    /// Options a newer version added, written into the user's file with their defaults
+    /// ("streaming.mp_maps"). The previous file is kept as config.toml.bak.
+    std::vector<std::string> addedOptions;
 };
 
 /// Reads config.toml into a LoaderConfig. Nothing here throws: toml++ exceptions are caught
@@ -34,8 +38,9 @@ struct ConfigLoadResult
 class ConfigLoader
 {
 public:
-    /// Parses file, writing the commented default first when it does not exist.
-    /// A file that fails to parse is left untouched and the defaults are used.
+    /// Parses file, writing the commented default first when it does not exist, and adding the
+    /// options a newer default has that it lacks. A file that fails to parse is left untouched
+    /// and the defaults are used.
     [[nodiscard]] static ConfigLoadResult LoadOrCreate(const std::filesystem::path& file);
 
     /// Parses TOML text. Pure, so it carries the unit tests.

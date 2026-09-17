@@ -147,6 +147,9 @@
     <ClCompile Include="$(SplRoot)src\util\FileTree.cpp">
       <Filter>src\util</Filter>
     </ClCompile>
+    <ClCompile Include="$(SplRoot)src\util\Files.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SplRoot)src\console\ConsoleInput.h">
@@ -282,6 +285,9 @@
       <Filter>src\util</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\util\FileTree.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\util\Files.h">
       <Filter>src\util</Filter>
     </ClInclude>
   </ItemGroup>
