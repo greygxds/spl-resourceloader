@@ -236,7 +236,7 @@ Result<void> DataFileInterface::Load(std::string_view typeName, std::string_view
     }
     if (!*loaded)
     {
-        return MakeError(ErrorCode::Unavailable, "the game's {} mounter refused '{}'", type, path);
+        return MakeError(ErrorCode::Refused, "the game's {} mounter refused '{}'", type, path);
     }
     return {};
 }

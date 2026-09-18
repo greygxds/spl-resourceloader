@@ -516,9 +516,7 @@ TEST_CASE("StreamingPlan: an audio data file named without its suffix is planned
 {
     StreamTree tree;
     tree.WriteFile("baton/audio/baton_game.dat151.rel", "rel");
-    tree.WriteFile("baton/audio/baton_game.dat151.nametable", "names");
     tree.WriteFile("baton/audio/baton_sounds.dat54.rel", "rel");
-    tree.WriteFile("baton/audio/baton_sounds.dat54.nametable", "names");
 
     // Literal patterns that match no file are kept as written by the manifest reader.
     ResourceManifest manifest;
@@ -536,21 +534,19 @@ TEST_CASE("StreamingPlan: an audio data file named without its suffix is planned
 
     REQUIRE(TypesOf(plan) == std::vector<std::string>{"AUDIO_GAMEDATA", "AUDIO_SOUNDDATA"});
     CHECK(plan.DataFiles()[0].relativePath == "audio/baton_game.dat");
-    CHECK(plan.DataFiles()[0].contentNote == "it ships baton_game.dat151 (with its .nametable)");
+    CHECK(plan.DataFiles()[0].contentNote == "it ships baton_game.dat151.rel");
 }
 
-TEST_CASE("StreamingPlan: an audio data file says what it ships when a half is missing",
-          "[streaming]")
+TEST_CASE("StreamingPlan: an audio data file says which versions it ships", "[streaming]")
 {
     StreamTree tree;
-    tree.WriteFile("baton/audio/whole_game.dat151.rel", "rel");
-    tree.WriteFile("baton/audio/whole_game.dat151.nametable", "names");
-    tree.WriteFile("baton/audio/half_game.dat151.rel", "rel");
+    tree.WriteFile("baton/audio/current_game.dat151.rel", "rel");
     tree.WriteFile("baton/audio/stale_game.dat54.rel", "rel");
-    tree.WriteFile("baton/audio/stale_game.dat54.nametable", "names");
+    tree.WriteFile("baton/audio/both_game.dat151.rel", "rel");
+    tree.WriteFile("baton/audio/both_game.dat54.rel", "rel");
 
     ResourceManifest manifest;
-    for (const std::string_view name : {"whole_game", "half_game", "stale_game", "absent_game"})
+    for (const std::string_view name : {"current_game", "stale_game", "both_game", "absent_game"})
     {
         const std::string relativePath = fmt::format("audio/{}.dat", name);
         manifest.dataFiles.push_back(DataFileEntry{
@@ -564,10 +560,10 @@ TEST_CASE("StreamingPlan: an audio data file says what it ships when a half is m
 
     // Every one is still handed to the game, as FiveM does; the note is what tells them apart.
     REQUIRE(plan.DataFiles().size() == 4);
-    CHECK(plan.DataFiles()[0].contentNote == "it ships whole_game.dat151 (with its .nametable)");
-    CHECK(plan.DataFiles()[1].contentNote == "it ships half_game.dat151 (without its .nametable)");
-    CHECK(plan.DataFiles()[2].contentNote == "it ships stale_game.dat54 (with its .nametable)");
-    CHECK(plan.DataFiles()[3].contentNote == "nothing of it is on disk");
+    CHECK(plan.DataFiles()[0].contentNote == "it ships current_game.dat151.rel");
+    CHECK(plan.DataFiles()[1].contentNote == "it ships stale_game.dat54.rel");
+    CHECK(plan.DataFiles()[2].contentNote == "it ships both_game.dat151.rel, both_game.dat54.rel");
+    CHECK(plan.DataFiles()[3].contentNote == "no .rel of it is on disk");
 }
 
 TEST_CASE("StreamingPlan: a data file that is not there says so", "[streaming]")

@@ -91,9 +91,8 @@ constexpr std::string_view kItypRequestType = "DLC_ITYP_REQUEST";
 constexpr std::string_view kObsoleteAssaultVehiclesFile = "data/ai/vehicleweapons_caracara.meta";
 
 /// Audio data files are named without the suffix the audio engine adds: 'audio/x_game.dat'
-/// is x_game.dat151.rel on disk, opened together with the x_game.dat151.nametable beside it.
+/// is x_game.dat151.rel on disk. Its name table is inside the .rel; no .nametable is needed.
 constexpr std::string_view kAudioDataSuffix = ".rel";
-constexpr std::string_view kAudioNameTableSuffix = ".nametable";
 
 /// pgRawStreamer holds 65 535 entries at most, and it is shared with the game's own files.
 /// Well before that the plan is a sign that something has gone wrong.
@@ -212,19 +211,11 @@ FindDataFileSwitch(const DataFileTypeInfo& info, const config::DataFileSettings&
     return std::nullopt;
 }
 
-/// One version suffix an audio data file was found under — the '151' of x_game.dat151.rel —
-/// and which halves of the pair the resource ships under it.
-struct AudioPair
-{
-    std::string version;
-    bool hasData = false;      ///< the .rel, the metadata itself
-    bool hasNameTable = false; ///< the .nametable the engine reads the object names from
-};
-
-/// Every version suffix 'audio/x_game.dat' was found under, in version order. The engine opens
-/// the one suffix its build uses, so files shipped under another one are never looked at.
-[[nodiscard]] std::vector<AudioPair> FindAudioPairs(const util::IFileTree& files,
-                                                    const std::filesystem::path& path)
+/// The version suffixes 'audio/x_game.dat' is shipped under, in order: '151' for
+/// x_game.dat151.rel. The engine opens the one suffix its build uses, so a .rel shipped under
+/// another one is never looked at.
+[[nodiscard]] std::vector<std::string> FindAudioVersions(const util::IFileTree& files,
+                                                         const std::filesystem::path& path)
 {
     const Result<std::vector<util::FileTreeEntry>> entries = files.List(path.parent_path());
     if (!entries)
@@ -233,35 +224,18 @@ struct AudioPair
     }
 
     const std::string prefix = util::ToLower(util::ToUtf8(path.filename()));
-    std::vector<AudioPair> pairs;
-    const auto pairFor = [&pairs](std::string_view version) -> AudioPair&
-    {
-        const auto match = std::ranges::find(pairs, version, &AudioPair::version);
-        return match != pairs.end()
-                   ? *match
-                   : pairs.emplace_back(AudioPair{.version = std::string{version}});
-    };
-
+    std::vector<std::string> versions;
     for (const util::FileTreeEntry& entry : entries.GetValue())
     {
         const std::string name = util::ToLower(util::ToUtf8(entry.path.filename()));
-        if (!name.starts_with(prefix))
+        if (name.starts_with(prefix) && name.ends_with(kAudioDataSuffix))
         {
-            continue;
-        }
-        const std::string_view suffix = std::string_view{name}.substr(prefix.size());
-        if (suffix.ends_with(kAudioDataSuffix))
-        {
-            pairFor(suffix.substr(0, suffix.size() - kAudioDataSuffix.size())).hasData = true;
-        }
-        else if (suffix.ends_with(kAudioNameTableSuffix))
-        {
-            pairFor(suffix.substr(0, suffix.size() - kAudioNameTableSuffix.size())).hasNameTable =
-                true;
+            versions.push_back(
+                name.substr(prefix.size(), name.size() - prefix.size() - kAudioDataSuffix.size()));
         }
     }
-    std::ranges::sort(pairs, {}, &AudioPair::version);
-    return pairs;
+    std::ranges::sort(versions);
+    return versions;
 }
 
 /// What a resource ships for one data file: whether the game will find what it opens, and a
@@ -272,34 +246,29 @@ struct DataFileContent
     std::string note;
 };
 
-/// The pair behind an audio data file named without its suffix. Both halves have to be there
-/// under the suffix the build uses, or the game's mounter refuses the file without saying why,
-/// so the note names every suffix found and what it holds.
+/// The .rel behind an audio data file named without its suffix. The game's mounter refuses a
+/// file without saying why, so the note names every suffix it was found under: one the build
+/// does not use is the first thing to rule out.
 [[nodiscard]] DataFileContent CheckAudioData(const util::IFileTree& files,
                                              const std::filesystem::path& path)
 {
-    const std::vector<AudioPair> pairs = FindAudioPairs(files, path);
-    if (pairs.empty())
+    const std::vector<std::string> versions = FindAudioVersions(files, path);
+    if (versions.empty())
     {
-        return {.complete = false, .note = "nothing of it is on disk"};
+        return {.complete = false, .note = "no .rel of it is on disk"};
     }
 
     const std::string stem = util::ToLower(util::ToUtf8(path.filename()));
-    bool complete = false;
     std::string note = "it ships ";
-    for (const AudioPair& pair : pairs)
+    for (const std::string& version : versions)
     {
-        complete = complete || (pair.hasData && pair.hasNameTable);
-        if (&pair != &pairs.front())
+        if (&version != &versions.front())
         {
             note += ", ";
         }
-        note += fmt::format("{}{} ({})", stem, pair.version,
-                            pair.hasData && pair.hasNameTable ? "with its .nametable"
-                            : pair.hasData                    ? "without its .nametable"
-                                                              : "a .nametable with no .rel");
+        note += fmt::format("{}{}{}", stem, version, kAudioDataSuffix);
     }
-    return {.complete = complete, .note = note};
+    return {.note = note};
 }
 
 /// What is on disk for a data file, under the name the manifest gave it. An audio path names

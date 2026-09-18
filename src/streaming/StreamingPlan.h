@@ -61,8 +61,8 @@ struct PlannedDataFile
     bool matchesStreamedAsset = false;
 
     /// What the resource ships under this name, when the game refusing the file would otherwise
-    /// say nothing about why ("it ships x_game.dat151 without its .nametable"). Empty when the
-    /// path names a file outright.
+    /// say nothing about why ("it ships x_game.dat151.rel"). Empty when the path names a file
+    /// outright.
     std::string contentNote;
 
     /// Added by [streaming] auto_request_ytyp rather than written in the manifest.
