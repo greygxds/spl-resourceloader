@@ -42,9 +42,11 @@ constexpr std::array<std::string_view, 7> kRequiredModules = {"ytd",  "ydr",  "y
 constexpr std::array<std::string_view, 5> kExtraDumpModules = {"ycd", "ynv", "ynd", "ypt", "ymt"};
 
 /// A live game has far more than a hundred thousand entries; build 3411 with every DLC reports
-/// 2 709 473. A count outside this range means we are not looking at the streaming manager.
+/// 2 709 473. A count below the minimum means we are not looking at the streaming manager. Heavily
+/// modded games go well past the typical maximum (one reported 10 949 098), so exceeding it is
+/// only logged; the module and slot checks that follow still prove the layout.
 constexpr int32_t kMinEntryCount = 100000;
-constexpr int32_t kMaxEntryCount = 8000000;
+constexpr int32_t kTypicalMaxEntryCount = 16000000;
 constexpr uint16_t kMinModuleCount = 20;
 constexpr uint16_t kMaxModuleCount = 64;
 
@@ -392,12 +394,19 @@ Result<void> StreamingInterface::Verify(const memory::Module& image) const
     }
 
     const strStreamingInfoManagerView& manager = *GetManager();
-    if (manager.numEntries < kMinEntryCount || manager.numEntries > kMaxEntryCount)
+    if (manager.numEntries < kMinEntryCount)
     {
         return MakeError(ErrorCode::NotFound,
-                         "the streaming manager reports {} entries, outside the plausible "
-                         "range {}..{}",
-                         manager.numEntries, kMinEntryCount, kMaxEntryCount);
+                         "the streaming manager reports {} entries, fewer than the plausible "
+                         "minimum of {}",
+                         manager.numEntries, kMinEntryCount);
+    }
+    if (manager.numEntries > kTypicalMaxEntryCount)
+    {
+        SPL_LOG_WARNING(Rage,
+                        "the streaming manager reports {} entries, more than the typical {}; "
+                        "continuing, as heavily modded games can exceed it",
+                        manager.numEntries, kTypicalMaxEntryCount);
     }
 
     const auto entries = reinterpret_cast<uintptr_t>(manager.entries);
