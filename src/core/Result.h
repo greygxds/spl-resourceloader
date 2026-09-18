@@ -22,7 +22,8 @@ enum class ErrorCode
     Io,
     Parse,
     AccessDenied,
-    Unavailable ///< the subsystem is not in a state where the call can work
+    Unavailable, ///< the subsystem is not in a state where the call can work
+    Refused      ///< the game ran the request and declined it, without saying why
 };
 
 [[nodiscard]] std::string_view ToString(ErrorCode code);

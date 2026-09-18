@@ -56,5 +56,6 @@ TEST_CASE("Result: every error code has a name", "[core]")
     CHECK(spl::ToString(ErrorCode::NotFound) == "not found");
     CHECK(spl::ToString(ErrorCode::Ambiguous) == "ambiguous");
     CHECK(spl::ToString(ErrorCode::Unavailable) == "unavailable");
+    CHECK(spl::ToString(ErrorCode::Refused) == "refused");
     CHECK_FALSE(spl::ToString(ErrorCode::Unknown).empty());
 }

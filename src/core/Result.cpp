@@ -27,6 +27,8 @@ std::string_view ToString(ErrorCode code)
         return "access denied";
     case Unavailable:
         return "unavailable";
+    case Refused:
+        return "refused";
     }
     return "unknown";
 }

@@ -18,6 +18,7 @@
 #include "logging/Logger.h"
 #include "streaming/AssetRegistry.h"
 #include "streaming/AssetType.h"
+#include "streaming/DataFileType.h"
 #include "streaming/StreamingBackend.h"
 #include "streaming/StreamingPlan.h"
 #include "util/Glob.h"
@@ -88,6 +89,17 @@ bool HasRegistrationOf(std::span<const PlannedAsset> lateAssets,
                                    return std::ranges::find(types, asset.type) != types.end() &&
                                           IsRegistrationImplemented(asset.type);
                                });
+}
+
+/// True when the game declined an audio data file outright. Audio game data only tunes what
+/// the game already has (interior acoustics, a vehicle's sound settings), resources often ship
+/// placeholder files the game will not take, and nothing on our side can make it take them —
+/// so it is worth a warning, not an error. A fault inside the mounter is still an error.
+[[nodiscard]] bool IsHarmlessRefusal(const PlannedDataFile& dataFile, const Error& error)
+{
+    const DataFileTypeInfo* const info = FindDataFileType(dataFile.type);
+    return error.code == ErrorCode::Refused && info != nullptr &&
+           info->category == DataFileCategory::Audio;
 }
 } // namespace
 
@@ -317,11 +329,21 @@ void StreamingManager::RunDataFiles(std::span<const PlannedDataFile> dataFiles, 
         if (!loaded)
         {
             ++m_dataFileTotals.failed;
+            const std::string note = dataFile.contentNote.empty()
+                                         ? std::string{}
+                                         : fmt::format(" ({})", dataFile.contentNote);
+            if (IsHarmlessRefusal(dataFile, loaded.GetError()))
+            {
+                SPL_LOG_WARNING(Streaming,
+                                "{} '{}' from '{}' was not taken: {}{}. What it tunes keeps the "
+                                "game's defaults, which is often not audible; the rest of the "
+                                "resource is unaffected",
+                                dataFile.type, dataFile.relativePath, dataFile.resourceName,
+                                loaded.GetMessage(), note);
+                continue;
+            }
             SPL_LOG_ERROR(Streaming, "{} '{}' from '{}' failed to load: {}{}", dataFile.type,
-                          dataFile.relativePath, dataFile.resourceName, loaded.GetMessage(),
-                          dataFile.contentNote.empty()
-                              ? std::string{}
-                              : fmt::format(" ({})", dataFile.contentNote));
+                          dataFile.relativePath, dataFile.resourceName, loaded.GetMessage(), note);
             continue;
         }
         ++m_dataFileTotals.loaded;
