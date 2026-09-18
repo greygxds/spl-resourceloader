@@ -159,6 +159,18 @@ bool IsLoaderBusy(const HandlerState& state)
     }
 }
 
+bool IsStartingUp(const HandlerState& state)
+{
+    try
+    {
+        return state.settings.isStartingUp && state.settings.isStartingUp();
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
 LONG WINAPI Filter(EXCEPTION_POINTERS* exception)
 {
     HandlerState& state = GetState();
@@ -167,7 +179,7 @@ LONG WINAPI Filter(EXCEPTION_POINTERS* exception)
         const bool inGameCall = rage::IsInsideGameCall();
         const bool ours = inGameCall ||
                           ModuleOf(exception->ExceptionRecord->ExceptionAddress) == OwnModule() ||
-                          IsLoaderBusy(state);
+                          IsLoaderBusy(state) || IsStartingUp(state);
         if (ours && !state.reporting.test_and_set())
         {
             static_cast<void>(TryReport(state, exception, inGameCall));

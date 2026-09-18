@@ -246,6 +246,9 @@ bool Application::Bootstrap()
         .writeMinidump = m_config.diagnostics.writeMinidump,
         .describe = [this] { return DescribeForCrash(); },
         .isBusy = [this] { return m_session.IsBusy(); },
+        // Until the bridge is up the loader owns the startup path, so a foreign fault is
+        // most likely a conflict with what was just patched and gets reported.
+        .isStartingUp = [this] { return !m_connected; },
         .onCrash =
             [this](const CrashReportInfo& info)
         {
@@ -387,6 +390,7 @@ std::vector<std::string> Application::FindMetasTheGameReads() const
 
 void Application::OnInitPhaseStart(rage::InitPhase phase)
 {
+    CrashHandler::EnsureFirst(); // a mod that hooked startup may have replaced our filter
     // FiveM registers everything but maps as the session starts (LoadStreamingFile.cpp:3750).
     if (phase != rage::InitPhase::Session || m_connected)
     {
@@ -802,6 +806,7 @@ void Application::MountModOverlays()
 void Application::Tick()
 {
     logging::KeepConsoleVisible();
+    CrashHandler::EnsureFirst(); // keeps our filter in front when a mod replaces it
     RunConsoleCommands();
     if (m_state != LoaderState::Ready)
     {

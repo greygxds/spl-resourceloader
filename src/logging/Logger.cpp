@@ -170,6 +170,14 @@ spdlog::sink_ptr MakeConsoleSink()
     return sink;
 }
 
+/// Closing the window otherwise ends the process through ExitProcess, whose DLL detach
+/// crashes ScriptHookV and files a crash that was really a hang being closed. Ignoring the
+/// close keeps a stuck session killable through the Task Manager instead, which skips detach.
+BOOL WINAPI ConsoleCtrlHandler(DWORD event)
+{
+    return event == CTRL_CLOSE_EVENT ? TRUE : FALSE;
+}
+
 /// Opens a console window and points stdout at it. Only ever called when the user asked for
 /// it with loader.console, because GTA V has no console of its own.
 bool AttachConsole()
@@ -182,6 +190,7 @@ bool AttachConsole()
     {
         return false;
     }
+    ::SetConsoleCtrlHandler(&ConsoleCtrlHandler, TRUE);
 
     // The banner and the em dash in the version line are UTF-8.
     ::SetConsoleOutputCP(CP_UTF8);
