@@ -79,6 +79,7 @@ public:
     /// Proves the layout on this build before anything relies on it: the manager sits in the
     /// image, its entry array does not, the module array is plausible, the well-known modules
     /// resolve with non-overlapping index ranges, and FindSlot agrees with the vtable shift.
+    /// An unusually high entry count is logged as a warning rather than rejected.
     [[nodiscard]] Result<void> Verify(const memory::Module& image) const;
 
     /// The asset store for an extension ("ytd"), or std::nullopt when the game has none.
