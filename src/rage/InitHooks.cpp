@@ -53,6 +53,34 @@ constexpr uint32_t kRaisedMountLimit = kVanillaMountLimit * 15;
                ? fmt::format("{}+{:#x}", image.GetFileName(), address - image.GetBase())
                : fmt::format("{:#x}", address);
 }
+
+/// Who owns the current target of a startup call: nullopt when it is still the game's own
+/// code (or there is no call to check), so the loader may redirect it. A hook trampoline
+/// lives outside any loaded image, which still counts as owned by another mod.
+[[nodiscard]] std::optional<std::string> FindForeignCallOwner(uintptr_t call)
+{
+    if (call == 0)
+    {
+        return std::nullopt;
+    }
+    const std::optional<uintptr_t> callee =
+        SafeCall("InitHooks::ReadCallTarget",
+                 [&] { return memory::Address(call).GetCallTarget().GetValue(); });
+    if (!callee)
+    {
+        return std::string{"an unreadable address"};
+    }
+    const std::optional<memory::Module> owner = memory::Module::FindContaining(*callee);
+    if (owner && owner->GetBase() == memory::Module::Main().GetBase())
+    {
+        return std::nullopt;
+    }
+    if (owner)
+    {
+        return owner->GetFileName();
+    }
+    return std::string{"a hook trampoline outside any loaded module"};
+}
 } // namespace
 
 InitHookCallbacks InitHooks::s_callbacks;
@@ -113,9 +141,23 @@ Result<void> InitHooks::Install(const GameAddresses& addresses, InitHookCallback
     }
 
     // The optional call sites go in first: once RunInitFunctions is hooked the game may run
-    // at any moment, and a half-installed set would miss its events.
-    InstallMountPatches(addresses);
-    if (addresses.fiDeviceInitialMountCall != 0)
+    // at any moment, and a half-installed set would miss its events. Device setup is one
+    // unit: when another mod already owns the initial mount call, it owns ordering and the
+    // mount limit too, and our writes there would only corrupt its flow.
+    const std::optional<std::string> deviceSetupOwner =
+        FindForeignCallOwner(addresses.fiDeviceInitialMountCall);
+    if (deviceSetupOwner)
+    {
+        SPL_LOG_WARNING(Hook,
+                        "Device setup stays with '{}', which already hooked the initial mount: "
+                        "mount limit and device order are unchanged",
+                        *deviceSetupOwner);
+    }
+    else
+    {
+        InstallMountPatches(addresses);
+    }
+    if (addresses.fiDeviceInitialMountCall != 0 && !deviceSetupOwner)
     {
         uintptr_t callee = 0;
         if (Result<void> redirected =
@@ -264,6 +306,16 @@ Result<void> InitHooks::RedirectCall(std::string_view name, uintptr_t call, void
                          name);
     }
     callee = memory::Address(call).GetCallTarget().GetValue();
+    // Another mod may have redirected the call first (Lenny's Mod Loader hooks the same
+    // startup calls). Chaining into a foreign detour runs unknown code as the game's own
+    // startup, which froze the game with no window; refuse instead and degrade to late hooks.
+    if (const std::optional<std::string> foreign = FindForeignCallOwner(call))
+    {
+        return MakeError(ErrorCode::NotFound,
+                         "patch '{}' refused: the call already points into '{}', so another mod "
+                         "hooked it first",
+                         name, *foreign);
+    }
     Result<memory::CodePatch> patch = memory::CodePatch::WriteCall(std::string{name}, call, detour);
     if (!patch)
     {

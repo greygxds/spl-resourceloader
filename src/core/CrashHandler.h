@@ -8,10 +8,10 @@
 namespace spl
 {
 /// Writes crash.txt (and optionally crash.dmp) when the game crashes in the loader's code, inside
-/// a game call the loader made, or anywhere while the loader is changing game state (the game
-/// then most likely tripped over what it was just given). It never handles a crash: the previous
-/// filter, usually the game's or ScriptHookV's, always runs afterwards, and a crash that is
-/// not ours is passed on untouched.
+/// a game call the loader made, while the loader is changing game state, or anywhere while the
+/// loader is still starting up (a conflict with another mod then leaves a report instead of
+/// silence). It never handles a crash: the previous filter, usually the game's or ScriptHookV's,
+/// always runs afterwards, and a crash that is not ours is passed on untouched.
 class CrashHandler
 {
 public:
@@ -28,6 +28,10 @@ public:
         /// True while the loader is registering or changing game state, when a crash in any
         /// module is reported. Runs inside the filter.
         std::function<bool()> isBusy;
+
+        /// True while the loader is still starting up, when a crash in any module is reported
+        /// so a conflict with another mod is attributed instead of silent. Runs inside the filter.
+        std::function<bool()> isStartingUp;
 
         /// Called after the report is written, with what it said.
         std::function<void(const CrashReportInfo&)> onCrash;
