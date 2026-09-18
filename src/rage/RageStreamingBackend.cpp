@@ -145,8 +145,10 @@ RegistrationOutcome RageStreamingBackend::RegisterAsset(const streaming::Planned
     }
 
     // A new asset takes a store slot. A full pool is a game assertion, so refuse it here with a
-    // message instead; a pool that cannot be read (size 0) is left to the game.
-    SlotBudget* budget = FindSlotBudget(*module);
+    // message instead; a pool that cannot be read (size 0) is left to the game. A name that
+    // already has a slot reuses it: the navmesh store allocates one per grid cell up front, so
+    // its pool always reads as full while every ynv still has a slot waiting.
+    SlotBudget* budget = existingSlot ? nullptr : FindSlotBudget(*module);
     if (budget != nullptr && budget->used >= budget->size)
     {
         return Failure(fmt::format("'{}' from '{}' was not registered: the game's '{}' store is "
