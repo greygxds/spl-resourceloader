@@ -144,25 +144,13 @@ RegistrationOutcome RageStreamingBackend::RegisterAsset(const streaming::Planned
         }
     }
 
-    // A new asset takes a store slot. A full pool is a game assertion, so refuse it here with a
-    // message instead; a pool that cannot be read (size 0) is left to the game. A name that
-    // already has a slot reuses it: the navmesh store allocates one per grid cell up front, so
-    // its pool always reads as full while every ynv still has a slot waiting.
-    SlotBudget* budget = existingSlot ? nullptr : FindSlotBudget(*module);
-    if (budget != nullptr && budget->used >= budget->size)
-    {
-        return Failure(fmt::format("'{}' from '{}' was not registered: the game's '{}' store is "
-                                   "full ({} of {} slots in use)",
-                                   asset.fileName, asset.resourceName, extension, budget->used,
-                                   budget->size));
-    }
+    // Usage is diagnostics only: the game decides whether the registration fits (FiveM
+    // gta-streaming-five/src/LoadStreamingFile.cpp:1957 calls RegisterRawStreamingFile
+    // unconditionally), so nothing here may gate on it.
+    NoteStoreUsage(*module);
 
     const std::optional<GlobalIndex> index =
         m_bridge->Streaming().RegisterRawFile(*vfsPath, registrationName);
-    if (index && budget != nullptr)
-    {
-        ++budget->used;
-    }
     if (!index)
     {
         return Failure(fmt::format("'{}' from '{}' was rejected by the game's raw streamer ('{}')",
@@ -203,25 +191,28 @@ RegistrationOutcome RageStreamingBackend::RegisterAsset(const streaming::Planned
                                .handle = handle};
 }
 
-RageStreamingBackend::SlotBudget*
-RageStreamingBackend::FindSlotBudget(const StreamingModule& module)
+void RageStreamingBackend::NoteStoreUsage(const StreamingModule& module)
 {
-    auto found = m_slotBudgets.find(module.Raw());
-    if (found == m_slotBudgets.end())
+    if (!m_loggedStores.insert(module.Raw()).second)
     {
-        const SlotBudget budget{.size = module.PoolSize(), .used = module.PoolUsed()};
-        found = m_slotBudgets.emplace(module.Raw(), budget).first;
-        SPL_LOG_DEBUG(Rage, "Store at {:#x}: {} of {} slots in use before registration",
-                      module.Raw(), budget.used, budget.size);
-        if (budget.size != 0 && budget.used * 10 >= budget.size * 9)
-        {
-            SPL_LOG_WARNING(Rage,
-                            "Store at {:#x} is almost full before registration ({} of {} slots "
-                            "in use), so resources may be refused",
-                            module.Raw(), budget.used, budget.size);
-        }
+        return;
     }
-    return found->second.size != 0 ? &found->second : nullptr;
+    const uint32_t size = module.PoolSize();
+    const uint32_t used = module.PoolUsed();
+    if (size == 0)
+    {
+        SPL_LOG_DEBUG(Rage, "Store at {:#x}: pool usage could not be read", module.Raw());
+        return;
+    }
+    SPL_LOG_DEBUG(Rage, "Store at {:#x}: {} of {} slots in use before registration", module.Raw(),
+                  used, size);
+    if (used * 10 >= size * 9)
+    {
+        SPL_LOG_WARNING(Rage,
+                        "Store at {:#x} is almost full before registration ({} of {} slots in "
+                        "use), the game may refuse further registrations",
+                        module.Raw(), used, size);
+    }
 }
 
 RegistrationOutcome RageStreamingBackend::RegisterOverride(const streaming::PlannedAsset& asset,

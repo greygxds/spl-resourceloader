@@ -6,7 +6,7 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
+#include <unordered_set>
 
 #include "config/LoaderConfig.h"
 #include "core/Result.h"
@@ -78,19 +78,12 @@ private:
     /// LoadStreamingFile.cpp:1320).
     void ReleasePermanentMapTypes(std::string_view fileName);
 
-    /// Store slots per module. Counting a pool walks every entry, so it happens
-    /// once per module and registrations keep the count up to date from then on.
-    struct SlotBudget
-    {
-        uint32_t size = 0;
-        uint32_t used = 0;
-    };
-
-    /// nullptr when the pool cannot be read, which leaves the check to the game.
-    [[nodiscard]] SlotBudget* FindSlotBudget(const StreamingModule& module);
+    /// Logs one store's pool usage once per module for diagnostics. Never gates
+    /// registration: the game decides whether the registration fits.
+    void NoteStoreUsage(const StreamingModule& module);
 
     RageBridge* m_bridge;
-    std::unordered_map<uintptr_t, SlotBudget> m_slotBudgets;
+    std::unordered_set<uintptr_t> m_loggedStores;
     config::StreamingSettings m_settings;
     config::MapReloadStrategy m_mapReloadStrategy;
     bool m_insideGameStartup = false;
