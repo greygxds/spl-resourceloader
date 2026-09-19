@@ -54,4 +54,5 @@ body:
     id: log
     attributes:
       label: resourceLoader.log
-      description: If `<GTA V>\resourceLoader\resourceLoader.log` exists, attach it (drag the file into this box).
+      description: |
+        Set `level = "debug"` under `[logging]` in `<GTA V>\resourceLoader\config.toml`, run the game again, then attach the fresh `<GTA V>\resourceLoader\resourceLoader.log` from that run (drag the file into this box).

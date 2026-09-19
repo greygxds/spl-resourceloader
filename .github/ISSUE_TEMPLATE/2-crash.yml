@@ -21,6 +21,6 @@ body:
     attributes:
       label: crash.txt, crash.dmp and resourceLoader.log
       description: |
-        Attach these from `<GTA V>\resourceLoader\` (drag the files into this box).
+        Attach these from `<GTA V>\resourceLoader\` (drag the files into this box). For the log: set `level = "debug"` under `[logging]` in `<GTA V>\resourceLoader\config.toml` first, run the game again until it crashes, then attach the fresh `resourceLoader.log` from that run.
     validations:
       required: true
