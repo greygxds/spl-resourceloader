@@ -62,6 +62,11 @@ struct RscHeader
 /// than 16 bytes.
 [[nodiscard]] RscHeader ParseRscHeader(std::string_view bytes);
 
+/// True when prefix looks like FiveM Asset Escrow ciphertext rather than an uncompiled text
+/// export: it starts with the "FXAP" pack marker, or it holds bytes no text file uses. Cfx
+/// escrows only Lua/YFT/YDD/YDR, so callers check the extension first.
+[[nodiscard]] bool LooksLikeEscrowCiphertext(std::string_view prefix);
+
 /// Decodes one RSC7 page-flag word into bytes. The word packs nine page counts, each page
 /// twice the size of the next, plus a 4-bit shift that scales all of them.
 [[nodiscard]] uint64_t DecodeRsc7PageFlags(uint32_t flags);

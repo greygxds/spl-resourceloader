@@ -421,3 +421,70 @@ TEST_CASE("AssetScanner: a file above the size limit is skipped as invalid", "[s
     CHECK(asset->disposition == AssetDisposition::SkippedInvalid);
     CHECK(Mentions(result.warnings, "above the 256 MiB limit"));
 }
+
+TEST_CASE("AssetScanner: an escrowed asset with an .fxap marker is blocked as escrow",
+          "[streaming]")
+{
+    StreamTree tree;
+    const Resource resource = tree.AddStreamResource("locked");
+    tree.AddFxapFile("locked");
+    tree.AddEncryptedFile("locked", "bisonstx_hood2a.yft");
+    tree.AddAsset("locked", "good.ydr", 165);
+
+    const AssetScanner::Result result = ScanOf(resource);
+
+    const StreamAsset* locked = Find(result.assets, "bisonstx_hood2a.yft");
+    REQUIRE(locked != nullptr);
+    REQUIRE(locked->disposition == AssetDisposition::SkippedInvalid);
+    REQUIRE(Mentions(result.warnings, "escrow-encrypted"));
+    REQUIRE(Mentions(result.warnings, "only works in FiveM"));
+
+    const StreamAsset* good = Find(result.assets, "good.ydr");
+    REQUIRE(good != nullptr);
+    REQUIRE(good->disposition == AssetDisposition::Planned);
+}
+
+TEST_CASE("AssetScanner: an escrowed asset without a marker is known by its ciphertext",
+          "[streaming]")
+{
+    StreamTree tree;
+    const Resource resource = tree.AddStreamResource("locked");
+    tree.AddEncryptedFile("locked", "bisonstx_hood2a.yft");
+
+    const AssetScanner::Result result = ScanOf(resource);
+
+    const StreamAsset* locked = Find(result.assets, "bisonstx_hood2a.yft");
+    REQUIRE(locked != nullptr);
+    REQUIRE(locked->disposition == AssetDisposition::SkippedInvalid);
+    REQUIRE(Mentions(result.warnings, "escrow-encrypted"));
+}
+
+TEST_CASE("AssetScanner: an uncompiled text export is not mistaken for escrow", "[streaming]")
+{
+    StreamTree tree;
+    const Resource resource = tree.AddStreamResource("map_one");
+    tree.AddFile("map_one", "plain.yft", "<Asset>uncompiled OpenFormats export</Asset>");
+
+    const AssetScanner::Result result = ScanOf(resource);
+
+    const StreamAsset* asset = Find(result.assets, "plain.yft");
+    REQUIRE(asset != nullptr);
+    REQUIRE(asset->disposition == AssetDisposition::SkippedInvalid);
+    REQUIRE(Mentions(result.warnings, "not a compiled RAGE resource"));
+    REQUIRE_FALSE(Mentions(result.warnings, "escrow"));
+}
+
+TEST_CASE("AssetScanner: an escrowed asset is blocked even with validation off", "[streaming]")
+{
+    StreamTree tree;
+    const Resource resource = tree.AddStreamResource("locked");
+    tree.AddFxapFile("locked");
+    tree.AddEncryptedFile("locked", "bisonstx_hood2a.yft");
+
+    const AssetScanner::Result result = ScanOf(resource, /*validateRscHeaders*/ false);
+
+    const StreamAsset* locked = Find(result.assets, "bisonstx_hood2a.yft");
+    REQUIRE(locked != nullptr);
+    REQUIRE(locked->disposition == AssetDisposition::SkippedInvalid);
+    REQUIRE(Mentions(result.warnings, "escrow-encrypted"));
+}

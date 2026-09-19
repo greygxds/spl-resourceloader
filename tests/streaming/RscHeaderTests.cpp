@@ -8,6 +8,7 @@
 #include "tests/streaming/StreamTree.h"
 
 using spl::streaming::DecodeRsc7PageFlags;
+using spl::streaming::LooksLikeEscrowCiphertext;
 using spl::streaming::ReadRscHeader;
 using spl::streaming::RscHeader;
 using spl::tests::RscHeaderBytes;
@@ -125,4 +126,13 @@ TEST_CASE("RscHeader: ToString names the format", "[streaming]")
 {
     REQUIRE(spl::streaming::ToString(RscHeader::Format::Rsc7) == "RSC7");
     REQUIRE(spl::streaming::ToString(RscHeader::Format::None) == "none");
+}
+
+TEST_CASE("RscHeader: LooksLikeEscrowCiphertext tells ciphertext from text", "[streaming]")
+{
+    REQUIRE(LooksLikeEscrowCiphertext(spl::tests::EscrowCiphertextBytes()));
+    REQUIRE(LooksLikeEscrowCiphertext(std::string{"FXAP", 4} + std::string(12, '\0')));
+    REQUIRE_FALSE(LooksLikeEscrowCiphertext("<Drawable>uncompiled</Drawable>"));
+    REQUIRE_FALSE(LooksLikeEscrowCiphertext(""));
+    REQUIRE_FALSE(LooksLikeEscrowCiphertext("RSC7"));
 }

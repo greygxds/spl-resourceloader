@@ -41,6 +41,13 @@ namespace spl::tests
     return std::string{"PSIN\0\0\0\x10", 8} + std::string(8, '\0');
 }
 
+/// Ciphertext as escrow encryption leaves it: binary bytes with no RSC magic and nothing a
+/// text file uses.
+[[nodiscard]] inline std::string EscrowCiphertextBytes()
+{
+    return std::string{"\x8F\x3A\xC7\x11\x5D\xE2\x90\x04\x6B\xB8\xF0\x27\x1C\x99\x44\xAA", 16};
+}
+
 /// A resources root whose resources have stream/ folders.
 class StreamTree : public TempTree
 {
@@ -73,6 +80,18 @@ public:
     void AddPsoFile(std::string_view resourceName, std::string_view relativePath) const
     {
         AddFile(resourceName, relativePath, PsoHeaderBytes());
+    }
+
+    /// A stream file carrying escrow ciphertext instead of an RSC header.
+    void AddEncryptedFile(std::string_view resourceName, std::string_view relativePath) const
+    {
+        AddFile(resourceName, relativePath, EscrowCiphertextBytes());
+    }
+
+    /// The asset-pack key marker every escrowed resource ships, at the resource root.
+    void AddFxapFile(std::string_view resourceName) const
+    {
+        WriteFile(std::string{resourceName} + "/entitlement.fxap", std::string{"FXAP\0\0\0\0", 8});
     }
 };
 

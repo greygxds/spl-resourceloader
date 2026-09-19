@@ -41,6 +41,10 @@ constexpr std::array<std::string_view, 21> kNonStreamingExtensions{
 /// The game's own loading spinner, which FiveM never registers (LoadStreamingFile.cpp:1848).
 constexpr std::string_view kBusySpinnerFileName = "busy_spinner.gfx";
 
+/// Streaming types Cfx Asset Escrow encrypts. Lua is escrowable too, but never reaches header
+/// validation: it is rejected as a non-streaming file first.
+constexpr std::array<std::string_view, 3> kEscrowExtensions{"yft", "ydd", "ydr"};
+
 constexpr uint64_t kBytesPerMiB = 1024ULL * 1024ULL;
 
 struct DirectoryEntries
@@ -106,6 +110,25 @@ std::string_view WithoutExtension(std::string_view fileName)
     return dot == std::string_view::npos ? fileName : fileName.substr(0, dot);
 }
 
+/// True when the resource ships the asset-pack key file every escrowed build carries.
+bool HasEscrowMarker(const util::IFileTree& tree, const std::filesystem::path& resourceRoot)
+{
+    for (const std::string& file : tree.ListFilesRecursive(resourceRoot))
+    {
+        if (LoweredExtension(std::filesystem::path(file)) == "fxap")
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// True for a streaming extension Cfx Asset Escrow encrypts.
+bool IsEscrowExtension(std::string_view extension)
+{
+    return std::ranges::find(kEscrowExtensions, extension) != kEscrowExtensions.end();
+}
+
 /// Fills in what the listing knows about the file. Size and time feed the size checks and let a
 /// changed file be noticed.
 void ReadFileFacts(StreamAsset& asset, const util::FileTreeEntry& entry)
@@ -122,8 +145,11 @@ void Skip(StreamAsset& asset, AssetDisposition disposition, std::string reason)
 
 /// Reads and validates the RSC header of an asset whose type is supposed to have one. Only
 /// the missing-header case can take the asset out of the plan; everything else is advice.
+/// Escrowed files block even with validation off: ciphertext never loads here, whatever the
+/// user assumes.
 void ValidateRscHeader(const util::IFileTree& tree, StreamAsset& asset, const AssetTypeInfo& info,
-                       const AssetScanner::Options& options, std::vector<std::string>& warnings)
+                       const AssetScanner::Options& options, bool hasEscrowMarker,
+                       std::vector<std::string>& warnings)
 {
     std::string error;
     asset.rsc = ReadRscHeader(tree, asset.absolutePath, &error);
@@ -140,6 +166,31 @@ void ValidateRscHeader(const util::IFileTree& tree, StreamAsset& asset, const As
         {
             return; // a PSO file: no page flags or version to check
         }
+
+        if (IsEscrowExtension(asset.extension))
+        {
+            bool escrow = hasEscrowMarker;
+            if (!escrow)
+            {
+                // No marker (users delete .fxap hoping it helps): ciphertext still gives
+                // itself away, while an uncompiled XML export reads as text.
+                const Result<std::string> prefix = tree.Read(asset.absolutePath, 16);
+                escrow = prefix && LooksLikeEscrowCiphertext(prefix.GetValue());
+            }
+            if (escrow)
+            {
+                Skip(asset, AssetDisposition::SkippedInvalid,
+                     "escrow-encrypted (FiveM Asset Escrow) — blocked, it only works in FiveM "
+                     "with the right entitlement and will never load here");
+                warnings.push_back(
+                    fmt::format("{}: '{}' is escrow-encrypted (FiveM Asset Escrow) — blocked, it "
+                                "only works in FiveM with the right entitlement and will never "
+                                "load here",
+                                asset.resourceName, asset.relativePath));
+                return;
+            }
+        }
+
         if (!options.validateRscHeaders)
         {
             return; // the user turned validation off: take the file at face value
@@ -232,6 +283,7 @@ AssetScanner::Result AssetScanner::Scan(const resource::Resource& resource,
 
     const std::filesystem::path& resourceRoot = resource.GetRootPath();
     const std::string& resourceName = resource.GetName();
+    const bool hasEscrowMarker = HasEscrowMarker(tree, resourceRoot);
 
     std::queue<std::filesystem::path> pending;
     pending.push(streamRoot);
@@ -347,7 +399,7 @@ AssetScanner::Result AssetScanner::Scan(const resource::Resource& resource,
             }
             else if (info.expectsRscHeader)
             {
-                ValidateRscHeader(tree, asset, info, options, result.warnings);
+                ValidateRscHeader(tree, asset, info, options, hasEscrowMarker, result.warnings);
             }
 
             result.assets.push_back(std::move(asset));

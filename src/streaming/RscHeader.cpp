@@ -153,6 +153,25 @@ std::optional<RscHeader> ReadRscHeader(const util::IFileTree& files,
     return ParseRscHeader(bytes.GetValue());
 }
 
+bool LooksLikeEscrowCiphertext(std::string_view prefix)
+{
+    if (prefix.starts_with("FXAP"))
+    {
+        return true; // the asset-pack marker shipped with escrowed resources
+    }
+    if (prefix.empty())
+    {
+        return false;
+    }
+    return std::ranges::any_of(prefix,
+                               [](char character)
+                               {
+                                   const auto byte = static_cast<unsigned char>(character);
+                                   return byte != '\t' && byte != '\n' && byte != '\r' &&
+                                          (byte < 0x20 || byte > 0x7E);
+                               });
+}
+
 std::string_view ToString(RscHeader::Format format)
 {
     switch (format)
