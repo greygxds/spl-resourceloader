@@ -29,6 +29,7 @@ body:
     id: log
     attributes:
       label: resourceLoader.log
-      description: Attach `<GTA V>\resourceLoader\resourceLoader.log` from a session where the problem happened (drag the file into this box).
+      description: |
+        Set `level = "debug"` under `[logging]` in `<GTA V>\resourceLoader\config.toml`, run the game again so the problem happens, then attach the fresh `<GTA V>\resourceLoader\resourceLoader.log` from that run (drag the file into this box).
     validations:
       required: true
