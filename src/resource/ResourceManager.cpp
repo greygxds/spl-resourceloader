@@ -138,8 +138,8 @@ void ResourceManager::Discover(const config::LoaderConfig& config,
     }
 
     const std::size_t enabled = CountEnabled();
-    SPL_LOG_DEBUG(Resource, "Discovered {} resources ({} enabled, {} disabled)", m_resources.size(),
-                  enabled, m_resources.size() - enabled);
+    SPL_LOG_INFO(Resource, "Discovered {} resources ({} enabled, {} disabled)", m_resources.size(),
+                 enabled, m_resources.size() - enabled);
 }
 
 std::vector<std::string> ResourceManager::Adopt(const config::LoaderConfig& config,
@@ -198,7 +198,7 @@ bool ResourceManager::AddResource(const config::LoaderConfig& config, ResourceCa
     if (!isMod && ContainsIgnoreCase(config.resources.disabled, name))
     {
         resource.SetState(ResourceState::Disabled, "disabled by configuration");
-        SPL_LOG_DEBUG(Resource, "Resource '{}' disabled by configuration", name);
+        SPL_LOG_INFO(Resource, "Resource '{}' disabled by configuration", name);
         return true;
     }
 
@@ -217,7 +217,7 @@ bool ResourceManager::AddResource(const config::LoaderConfig& config, ResourceCa
 
     if (!isMod)
     {
-        SPL_LOG_DEBUG(Resource, "Found resource: {} ({}){}", name, manifestKind, categories);
+        SPL_LOG_INFO(Resource, "Found resource: {} ({}){}", name, manifestKind, categories);
     }
     return true;
 }
@@ -271,8 +271,8 @@ void ResourceManager::LoadManifest(Resource& resource)
     {
         const std::string games = typed.DescribeGames();
         resource.SetState(ResourceState::Disabled, fmt::format("manifest targets {}", games));
-        SPL_LOG_DEBUG(Resource, "Resource '{}' disabled (manifest targets {})", resource.GetName(),
-                      games);
+        SPL_LOG_INFO(Resource, "Resource '{}' disabled (manifest targets {})", resource.GetName(),
+                     games);
         return;
     }
 

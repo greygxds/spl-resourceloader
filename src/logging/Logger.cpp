@@ -348,7 +348,7 @@ bool Initialize(const config::LoggingSettings& settings, bool console,
             state.channels.at(index) = MakeLogger(state, ToString(channel), level, flushLevel);
         }
 
-        // Ignores the configured level on purpose: a user running at the default "warning"
+        // Ignores the configured level on purpose: a user running at the default "info"
         // must still see that the loader started and which build it is.
         state.startup =
             MakeLogger(state, ToString(Channel::Core), spdlog::level::trace, flushLevel);

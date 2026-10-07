@@ -507,8 +507,8 @@ void StreamingManager::Finish()
                       m_dataFileTotals.loaded, m_dataFileTotals.skipped, m_dataFileTotals.failed);
     }
     Enter(StreamingStage::Done);
-    SPL_LOG_DEBUG(Streaming, "Streaming ready: {} asset(s) registered ({})", m_registry.Size(),
-                  DescribeTypeCounts(m_registry));
+    SPL_LOG_INFO(Streaming, "Streaming ready: {} asset(s) registered ({})", m_registry.Size(),
+                 DescribeTypeCounts(m_registry));
     if (!m_waitingAssets.empty())
     {
         SPL_LOG_INFO(Streaming,

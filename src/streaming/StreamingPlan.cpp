@@ -374,12 +374,12 @@ void StreamingPlan::AddResourceAssets(const resource::Resource& resource,
 
     if (scan.assets.empty())
     {
-        SPL_LOG_DEBUG(Streaming, "{}: no streaming assets", resourcePlan.name);
+        SPL_LOG_INFO(Streaming, "{}: no streaming assets", resourcePlan.name);
         return;
     }
 
-    SPL_LOG_DEBUG(Streaming, "{}: found {} streaming assets ({})", resourcePlan.name,
-                  scan.assets.size(), DescribeTypeCounts(scan.assets));
+    SPL_LOG_INFO(Streaming, "{}: found {} streaming assets ({})", resourcePlan.name,
+                 scan.assets.size(), DescribeTypeCounts(scan.assets));
 
     m_assets.insert(m_assets.end(), std::make_move_iterator(scan.assets.begin()),
                     std::make_move_iterator(scan.assets.end()));
@@ -778,12 +778,12 @@ void StreamingPlan::LogSummary() const
 {
     const std::size_t skipped = m_assets.size() - CountOf(AssetDisposition::Planned);
 
-    SPL_LOG_DEBUG(Streaming,
-                  "Streaming plan: {} early, {} late, {} manifest(s), {} data file(s), {} "
-                  "skipped{}",
-                  m_early.size(), m_late.size(), m_manifests.size(),
-                  m_dataFiles.size() + m_deferredDataFiles.size(), skipped,
-                  NeedsMapStoreReload() ? "; map store reload required" : "");
+    SPL_LOG_INFO(Streaming,
+                 "Streaming plan: {} early, {} late, {} manifest(s), {} data file(s), {} "
+                 "skipped{}",
+                 m_early.size(), m_late.size(), m_manifests.size(),
+                 m_dataFiles.size() + m_deferredDataFiles.size(), skipped,
+                 NeedsMapStoreReload() ? "; map store reload required" : "");
 
     // Every planned file becomes a raw streamer entry. The game's raw streamer is sized for its
     // own loose files, and nobody has measured where it gives out.

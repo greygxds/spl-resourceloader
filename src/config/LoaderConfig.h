@@ -68,7 +68,7 @@ struct ResourceSettings
 
 struct LoggingSettings
 {
-    LogLevel level = LogLevel::Warning;
+    LogLevel level = LogLevel::Info;
 
     bool operator==(const LoggingSettings&) const = default;
 };

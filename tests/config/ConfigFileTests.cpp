@@ -25,7 +25,7 @@ namespace
 std::string CompleteUserConfig()
 {
     std::string text{spl::config::DefaultConfigText()};
-    const std::string from = "level = \"warning\"";
+    const std::string from = "level = \"info\"";
     text.replace(text.find(from), from.size(), "level = \"debug\"");
     return text;
 }

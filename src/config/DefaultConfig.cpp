@@ -151,7 +151,7 @@ disabled = []                   # .rpf names without the extension, case-insensi
 priority = []                   # loaded first among mods, in this order; the rest alphabetically
 
 [logging]
-level = "warning"               # trace, debug, info, warning, error, critical, off
+level = "info"                  # trace, debug, info, warning, error, critical, off
 
 [streaming]
 enabled = true

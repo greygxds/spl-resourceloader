@@ -94,7 +94,7 @@ TEST_CASE("ConfigLoader: an unknown level warns and keeps the default", "[config
 {
     const ConfigLoadResult result = ConfigLoader::Parse("[logging]\nlevel = \"verbose\"\n");
 
-    REQUIRE(result.config.logging.level == LogLevel::Warning);
+    REQUIRE(result.config.logging.level == LogLevel::Info);
     REQUIRE(Mentions(result.diagnostics.warnings, "verbose"));
 }
 

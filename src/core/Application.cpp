@@ -618,7 +618,7 @@ void Application::DiscoverMods(std::span<const std::string> quarantined)
         mods::ModsScanner::Select(scanned.mods, m_config.mods);
     for (const std::string& name : selection.disabled)
     {
-        SPL_LOG_DEBUG(Mods, "Mod '{}' disabled by configuration", name);
+        SPL_LOG_INFO(Mods, "Mod '{}' disabled by configuration", name);
     }
     for (const std::string& name : selection.missingPriority)
     {
@@ -659,7 +659,7 @@ void Application::DiscoverMods(std::span<const std::string> quarantined)
     std::vector<mods::ModLayout::Result> keptResults;
     for (const std::string& name : kept)
     {
-        SPL_LOG_DEBUG(Mods, "Found mod: {}", name);
+        SPL_LOG_INFO(Mods, "Found mod: {}", name);
         const auto mod =
             std::ranges::find(laidOut, name, [](const auto& pair) { return pair.first; });
         if (mod != laidOut.end())
@@ -680,10 +680,10 @@ void Application::DiscoverMods(std::span<const std::string> quarantined)
     {
         m_modsRoot = modsFolder;
     }
-    SPL_LOG_DEBUG(Mods,
-                  "Discovered {} user mods ({} disabled, {} kept, {} files read from their "
-                  "archives)",
-                  discovered, selection.disabled.size(), kept.size(), mappedFiles);
+    SPL_LOG_INFO(Mods,
+                 "Discovered {} user mods ({} disabled, {} kept, {} files read from their "
+                 "archives)",
+                 discovered, selection.disabled.size(), kept.size(), mappedFiles);
 }
 
 void Application::ConnectToGame(bool insideGameStartup)

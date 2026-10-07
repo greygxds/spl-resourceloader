@@ -180,8 +180,8 @@ Using `std::optional`:
 - Use the channel of the subsystem that emits the message (`core`, `config`, `resource`, `manifest`, `streaming`, `rage`, `hook`).
 - Sentence case, with no trailing period. Put file and resource names in single quotes: `'prop.ydr' from 'map_one' overrides a game asset`.
 - Game addresses are logged as module + offset: `GTA5.exe+0x2A3C5B0`.
-- The default level is `warning`, so a clean launch logs only the version, the start time and the startup lines. `info` is
-  what a user turns on to see what loaded; it reads as a short report, not a trace.
+- The default level is `info`, so a clean launch logs the version, the startup lines and the
+  short load report. `info` reads as a short report, not a trace.
 - Level guide:
   | Level | Use for | Test |
   |---|---|---|
