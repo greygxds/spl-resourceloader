@@ -126,10 +126,9 @@ Result<void> PedMetaDataResidency::Install(const StreamingInterface& streaming)
     // Without it files stay loaded for good, which wastes memory and breaks nothing.
     if (m_removePedMetaDataFile != 0)
     {
-        if (Result<void> installed = InstallHook(kRemovePedMetaDataFileHook,
-                                                 m_removePedMetaDataFile,
-                                                 &RemovePedMetaDataFileDetour,
-                                                 &s_removePedMetaDataFileOriginal);
+        if (Result<void> installed =
+                InstallHook(kRemovePedMetaDataFileHook, m_removePedMetaDataFile,
+                            &RemovePedMetaDataFileDetour, &s_removePedMetaDataFileOriginal);
             installed)
         {
             m_releaseHooked = true;
@@ -151,8 +150,7 @@ Result<void> PedMetaDataResidency::VerifyDependenciesSlot() const
     const auto* const manager = reinterpret_cast<const strStreamingInfoManagerView*>(m_manager);
     const atArrayView<void*>& modules = manager->moduleMgr.modules;
     if (modules.data == nullptr || modules.count == 0 ||
-        !IsReadableMemory(reinterpret_cast<uintptr_t>(modules.data),
-                          modules.count * sizeof(void*)))
+        !IsReadableMemory(reinterpret_cast<uintptr_t>(modules.data), modules.count * sizeof(void*)))
     {
         return MakeError(ErrorCode::Unavailable, "the streaming modules are not set up yet");
     }
@@ -186,8 +184,8 @@ Result<void> PedMetaDataResidency::VerifyDependenciesSlot() const
     if (matches > 1)
     {
         return MakeError(ErrorCode::Ambiguous,
-                         "{} streaming modules have {:#x} in their GetDependencies slot",
-                         matches, m_getDependencies);
+                         "{} streaming modules have {:#x} in their GetDependencies slot", matches,
+                         m_getDependencies);
     }
     return {};
 }
@@ -213,11 +211,9 @@ void PedMetaDataResidency::RequestResident(GlobalIndex index)
     }
     // A fault is logged by SafeCall and stops every later game call, so nothing more to do here.
     void* const target = const_cast<strStreamingInfoManagerView*>(manager);
-    static_cast<void>(SafeCall("strStreamingInfoManager::RequestObject",
-                               [&] {
-                                   s_requestObject(target, index.value,
-                                                   ToInt(PedMetaDataLayout::kResidentRequest));
-                               }));
+    static_cast<void>(SafeCall(
+        "strStreamingInfoManager::RequestObject",
+        [&] { s_requestObject(target, index.value, ToInt(PedMetaDataLayout::kResidentRequest)); }));
 }
 
 void PedMetaDataResidency::MakeResident(GlobalIndex index)
@@ -247,11 +243,9 @@ void PedMetaDataResidency::ReleaseResident(GlobalIndex index)
         return;
     }
     void* const target = const_cast<strStreamingInfoManagerView*>(manager);
-    static_cast<void>(SafeCall("strStreamingInfoManager::ClearRequiredFlag",
-                               [&] {
-                                   s_clearRequiredFlag(target, index.value,
-                                                       ToInt(PedMetaDataLayout::kRelease));
-                               }));
+    static_cast<void>(SafeCall(
+        "strStreamingInfoManager::ClearRequiredFlag",
+        [&] { s_clearRequiredFlag(target, index.value, ToInt(PedMetaDataLayout::kRelease)); }));
 }
 
 void PedMetaDataResidency::ReportOverflow(uint32_t localSlot, int total)
@@ -282,8 +276,7 @@ int PedMetaDataResidency::GetDependenciesDetour(void* self, uint32_t localSlot,
 {
     const strStreamingInfoManagerView* const manager = s_manager;
     if (count <= 0 || count >= PedMetaDataLayout::kExtendedMaxDependencies ||
-        outIndices == nullptr || manager == nullptr || manager->entries == nullptr ||
-        HasFaulted())
+        outIndices == nullptr || manager == nullptr || manager->entries == nullptr || HasFaulted())
     {
         return s_getDependenciesOriginal(self, localSlot, outIndices, count);
     }

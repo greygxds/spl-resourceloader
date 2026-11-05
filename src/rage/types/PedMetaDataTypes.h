@@ -94,9 +94,8 @@ struct DependencySplit
 template <typename TIsResident, typename TFlagsOf>
     requires std::predicate<TIsResident&, uint32_t> && std::regular_invocable<TFlagsOf&, uint32_t>
 [[nodiscard]] DependencySplit SplitDependencies(std::span<const uint32_t> all, int callerCount,
-                                                std::span<uint32_t> out,
-                                                std::span<uint32_t> rearm, TIsResident isResident,
-                                                TFlagsOf flagsOf)
+                                                std::span<uint32_t> out, std::span<uint32_t> rearm,
+                                                TIsResident isResident, TFlagsOf flagsOf)
 {
     const int total = static_cast<int>(all.size());
     const int capacity = std::min(callerCount, static_cast<int>(out.size()));

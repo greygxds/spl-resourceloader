@@ -218,8 +218,8 @@ TEST_CASE("PedMetaOwners: removing what was never recorded releases nothing", "[
     PedMetaOwners owners;
     owners.AddOwner(GlobalIndex{7}, 0x1000);
 
-    CHECK_FALSE(owners.RemoveOwner(GlobalIndex{8}, 0x1000));    // another file
-    CHECK_FALSE(owners.RemoveOwner(GlobalIndex{7}, 0x3000));    // another owner
+    CHECK_FALSE(owners.RemoveOwner(GlobalIndex{8}, 0x1000)); // another file
+    CHECK_FALSE(owners.RemoveOwner(GlobalIndex{7}, 0x3000)); // another owner
     CHECK(owners.IsOwned(GlobalIndex{7}));
     CHECK_FALSE(PedMetaOwners{}.RemoveOwner(GlobalIndex{7}, 0x1000)); // nobody owns anything
 
