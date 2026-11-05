@@ -188,6 +188,21 @@ struct GameAddresses
     /// The imm32 of the streaming allocator's reservation, raised.
     uintptr_t streamingAllocatorReservation = 0;
 
+    // The ped metadata limit. All optional.
+
+    /// CPedModelInfo::SetPedMetaDataFile(this, int32_t localSlot), hooked.
+    uintptr_t pedModelInfoSetPedMetaDataFile = 0;
+
+    /// CPedModelInfo::RemovePedMetaDataFile(this, int32_t localSlot), hooked.
+    uintptr_t pedModelInfoRemovePedMetaDataFile = 0;
+
+    /// CModelInfoStreamingModule::GetDependencies(this, uint32_t localSlot, uint32_t* out,
+    /// int count), hooked.
+    uintptr_t modelInfoStreamingModuleGetDependencies = 0;
+
+    /// strStreamingInfoManager::ClearRequiredFlag(this, uint32_t index, int flags).
+    uintptr_t streamingInfoManagerClearRequiredFlag = 0;
+
     /// Copies the addresses this struct needs out of a resolve pass. An error means a
     /// required signature is missing, and the bridge must stay disabled.
     [[nodiscard]] static Result<GameAddresses> Build(const ResolvedSignatures& resolved);

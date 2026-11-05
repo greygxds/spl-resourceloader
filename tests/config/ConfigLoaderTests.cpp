@@ -178,6 +178,16 @@ TEST_CASE("ConfigLoader: mp_maps defaults to on and deferred to the MP map prefi
     REQUIRE(result.config.streaming.deferred == std::vector<std::string>{"xm_*"});
 }
 
+TEST_CASE("ConfigLoader: extended_ped_metadata defaults to on and can be turned off", "[config]")
+{
+    REQUIRE(ConfigLoader::Parse("").config.streaming.extendedPedMetadata);
+
+    const ConfigLoadResult result =
+        ConfigLoader::Parse("[streaming]\nextended_ped_metadata = false\n");
+    REQUIRE(result.diagnostics.IsEmpty());
+    REQUIRE_FALSE(result.config.streaming.extendedPedMetadata);
+}
+
 TEST_CASE("ConfigLoader: an empty deferred list turns the wait off", "[config]")
 {
     const ConfigLoadResult result = ConfigLoader::Parse("[streaming]\ndeferred = []\n");

@@ -529,6 +529,7 @@ ConfigLoadResult ConfigLoader::Parse(std::string_view tomlText)
         reader.ReadDuplicatePolicy("duplicate_policy", config.streaming.duplicatePolicy);
         reader.Read("auto_request_ytyp", config.streaming.autoRequestYtyp);
         reader.Read("mp_maps", config.streaming.mpMaps);
+        reader.Read("extended_ped_metadata", config.streaming.extendedPedMetadata);
         reader.ReadNameList("deferred", config.streaming.deferred);
         reader.ReportUnknownKeys();
     }

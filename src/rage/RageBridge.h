@@ -17,6 +17,7 @@
 #include "rage/MapStoreReloader.h"
 #include "rage/MemoryBudget.h"
 #include "rage/OverrideHooks.h"
+#include "rage/PedMetaDataResidency.h"
 #include "rage/RawStreamerInterface.h"
 #include "rage/StreamingInterface.h"
 
@@ -113,6 +114,13 @@ public:
         return m_memoryBudget;
     }
 
+    /// The ped metadata limit. Install() needs the streaming module array, so it goes in once
+    /// the bridge is initialized.
+    [[nodiscard]] PedMetaDataResidency& PedMetaData()
+    {
+        return m_pedMetaData;
+    }
+
     /// Only usable when GetOverrideSupport() succeeded.
     [[nodiscard]] RawStreamerInterface& RawStreamer()
     {
@@ -189,6 +197,7 @@ private:
     ContentInterface m_content;
     GamePatches m_patches;
     MemoryBudget m_memoryBudget;
+    PedMetaDataResidency m_pedMetaData;
     ManifestChunkLoader m_manifests;
     MapStoreReloader m_mapStore;
     RawStreamerInterface m_rawStreamer;

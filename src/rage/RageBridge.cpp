@@ -74,6 +74,7 @@ Result<void> RageBridge::Resolve()
     }
     m_addresses = addresses.GetValue();
     m_memoryBudget.Initialize(m_addresses);
+    m_pedMetaData.Initialize(m_addresses, m_build);
     m_resolved = true;
     return {};
 }

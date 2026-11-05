@@ -165,6 +165,9 @@
     <ClCompile Include="$(SplRoot)tests\rage\MemoryBudgetTypesTests.cpp">
       <Filter>tests\rage</Filter>
     </ClCompile>
+    <ClCompile Include="$(SplRoot)tests\rage\PedMetaDataTypesTests.cpp">
+      <Filter>tests\rage</Filter>
+    </ClCompile>
     <ClCompile Include="$(SplRoot)tests\rage\VfsPathTests.cpp">
       <Filter>tests\rage</Filter>
     </ClCompile>
