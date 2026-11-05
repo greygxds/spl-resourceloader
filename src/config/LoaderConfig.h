@@ -104,6 +104,10 @@ struct StreamingSettings
     /// does, so MP-layer map files find their game slot. Needs loader.early_init.
     bool mpMaps = true;
 
+    /// Raise the game's limit of 100 dependencies per ped to 256, so a ped with
+    /// many clothing .ymt files loads all of them. Hooks the game's streamer.
+    bool extendedPedMetadata = true;
+
     /// .ymap and .ybn file names, as globs, that are held back until the game has a slot of
     /// that name: Rockstar's MP map layers only get theirs once GROUP_MAP is enabled. A "hi@" or
     /// "ma@" collision prefix is ignored when matching.

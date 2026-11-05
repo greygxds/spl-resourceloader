@@ -75,6 +75,7 @@
     <ClCompile Include="$(SplRoot)src\rage\MemoryBudget.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\Natives.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\OverrideHooks.cpp" />
+    <ClCompile Include="$(SplRoot)src\rage\PedMetaDataResidency.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\RageBridge.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\RageStreamingBackend.cpp" />
     <ClCompile Include="$(SplRoot)src\rage\RawStreamerInterface.cpp" />
@@ -102,6 +103,7 @@
     <ClInclude Include="$(SplRoot)src\rage\MemoryBudget.h" />
     <ClInclude Include="$(SplRoot)src\rage\Natives.h" />
     <ClInclude Include="$(SplRoot)src\rage\OverrideHooks.h" />
+    <ClInclude Include="$(SplRoot)src\rage\PedMetaDataResidency.h" />
     <ClInclude Include="$(SplRoot)src\rage\RageBridge.h" />
     <ClInclude Include="$(SplRoot)src\rage\RageStreamingBackend.h" />
     <ClInclude Include="$(SplRoot)src\rage\RawStreamerInterface.h" />
@@ -115,6 +117,7 @@
     <ClInclude Include="$(SplRoot)src\rage\types\FileDeviceTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\MapStoreTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\MemoryBudgetTypes.h" />
+    <ClInclude Include="$(SplRoot)src\rage\types\PedMetaDataTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\StreamingTypes.h" />
     <ClInclude Include="$(SplRoot)src\rage\types\VirtualCall.h" />
   </ItemGroup>

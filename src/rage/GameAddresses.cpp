@@ -92,6 +92,12 @@ Result<GameAddresses> GameAddresses::Build(const ResolvedSignatures& resolved)
         .resourceCachePoolSize = Take(resolved, "ResourceCachePoolSize"),
         .resourceCachePoolLimit = Take(resolved, "ResourceCachePoolLimit"),
         .streamingAllocatorReservation = Take(resolved, "StreamingAllocatorReservation"),
+        .pedModelInfoSetPedMetaDataFile = Take(resolved, "CPedModelInfo::SetPedMetaDataFile"),
+        .pedModelInfoRemovePedMetaDataFile = Take(resolved, "CPedModelInfo::RemovePedMetaDataFile"),
+        .modelInfoStreamingModuleGetDependencies =
+            Take(resolved, "CModelInfoStreamingModule::GetDependencies"),
+        .streamingInfoManagerClearRequiredFlag =
+            Take(resolved, "strStreamingInfoManager::ClearRequiredFlag"),
     };
 }
 } // namespace spl::rage

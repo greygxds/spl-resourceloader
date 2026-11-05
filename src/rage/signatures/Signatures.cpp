@@ -8,7 +8,7 @@ namespace
 {
 /// THE signature table. No pattern string exists anywhere else in the codebase, so checking
 /// a new game build means reading this one array.
-constexpr std::array<SignatureSpec, 57> kSignatures = {{
+constexpr std::array<SignatureSpec, 61> kSignatures = {{
     // The LEA at match+8 loads the manager object itself, not a pointer to it, so the
     // rip-relative target is the instance.
     {.name = "strStreamingInfoManager::sm_instance",
@@ -361,6 +361,30 @@ constexpr std::array<SignatureSpec, 57> kSignatures = {{
      .offset = 2,
      .required = false,
      .source = "FiveM gta-streaming-five/src/PatchExtendedBudgeting.cpp:181"},
+
+    // The ped metadata limit, opted into with streaming.extended_ped_metadata. Optional: a miss
+    // turns off only that one. SetPedMetaDataFile is the overload that takes a slot, which every
+    // ped .ymt goes through.
+    {.name = "CPedModelInfo::SetPedMetaDataFile",
+     .pattern = "83 FA FF 74 ? 53 48 83 EC 20 8B DA 48 81 C1 E0 00 00 00 BA 01 00 00 00 E8",
+     .required = false,
+     .source = "game binary, the ped model info"},
+    {.name = "CModelInfoStreamingModule::GetDependencies",
+     .pattern = "48 8B C4 48 89 58 ? 44 89 48 ? 89 50 ? 48 89 48",
+     .required = false,
+     .source = "game binary, the model info streaming module"},
+    {.name = "strStreamingInfoManager::ClearRequiredFlag",
+     .pattern = "8B CA 4D 8B 11 45 0F B7 5C CA 06 45",
+     .offset = -0xB,
+     .required = false,
+     .source = "game binary, the streaming info manager"},
+    // Found as the callee that follows ClearRequiredFlag(..., 3) when a ped DLC pack is removed;
+    // the sibling of SetPedMetaDataFile.
+    {.name = "CPedModelInfo::RemovePedMetaDataFile",
+     .pattern = "83 FA FF 74 ? 89 54 24 ? 48 83 EC 28 48 8D 54 24 ? 48 81 C1 E0 00 00 00 "
+                "E8 ? ? ? ? 48 83 C4 28 C3",
+     .required = false,
+     .source = "game binary, found through the ped DLC pack removal"},
 }};
 } // namespace
 

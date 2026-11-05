@@ -75,6 +75,9 @@
     <ClCompile Include="$(SplRoot)src\rage\OverrideHooks.cpp">
       <Filter>src\rage</Filter>
     </ClCompile>
+    <ClCompile Include="$(SplRoot)src\rage\PedMetaDataResidency.cpp">
+      <Filter>src\rage</Filter>
+    </ClCompile>
     <ClCompile Include="$(SplRoot)src\rage\RawStreamerInterface.cpp">
       <Filter>src\rage</Filter>
     </ClCompile>
@@ -149,6 +152,9 @@
     <ClInclude Include="$(SplRoot)src\rage\OverrideHooks.h">
       <Filter>src\rage</Filter>
     </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\PedMetaDataResidency.h">
+      <Filter>src\rage</Filter>
+    </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\RawStreamerInterface.h">
       <Filter>src\rage</Filter>
     </ClInclude>
@@ -186,6 +192,9 @@
       <Filter>src\rage\types</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\types\MemoryBudgetTypes.h">
+      <Filter>src\rage\types</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SplRoot)src\rage\types\PedMetaDataTypes.h">
       <Filter>src\rage\types</Filter>
     </ClInclude>
     <ClInclude Include="$(SplRoot)src\rage\types\StreamingTypes.h">

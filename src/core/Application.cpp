@@ -705,6 +705,15 @@ void Application::ConnectToGame(bool insideGameStartup)
 
     m_backend = std::make_unique<rage::RageStreamingBackend>(m_bridge, m_config);
 
+    if (m_config.streaming.extendedPedMetadata)
+    {
+        if (Result<void> raised = m_bridge.PedMetaData().Install(m_bridge.Streaming()); !raised)
+        {
+            SPL_LOG_WARNING(Core, "The ped metadata limit was not raised: {}",
+                            raised.GetMessage());
+        }
+    }
+
     MountGameRoots();
 
     streaming::StreamingManager::Options options;
