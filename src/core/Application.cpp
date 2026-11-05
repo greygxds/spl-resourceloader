@@ -709,8 +709,7 @@ void Application::ConnectToGame(bool insideGameStartup)
     {
         if (Result<void> raised = m_bridge.PedMetaData().Install(m_bridge.Streaming()); !raised)
         {
-            SPL_LOG_WARNING(Core, "The ped metadata limit was not raised: {}",
-                            raised.GetMessage());
+            SPL_LOG_WARNING(Core, "The ped metadata limit was not raised: {}", raised.GetMessage());
         }
     }
 
